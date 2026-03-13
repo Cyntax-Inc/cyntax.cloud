@@ -1,13 +1,24 @@
 "use client";
+
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
 import { ThemeToggle } from "./ThemeToggle";
-import { Linkedin, Github, Cloud } from "lucide-react";
-
+import { Linkedin, Github } from "lucide-react";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  const logo =
+    resolvedTheme === "dark"
+      ? "/logo/logo_transparent_dark_mode.png"
+      : "/logo_transparent_5.png";
 
   const nav = (
     <ul className="flex flex-col gap-4 lg:flex-row lg:items-center">
@@ -53,7 +64,7 @@ export default function Navbar() {
             <Github className="w-4 h-4" />
           </a>
 
-          <ThemeToggle />
+         {/*<ThemeToggle />*/}
         </div>
       </li>
     </ul>
@@ -63,15 +74,24 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 border-b bg-[rgb(var(--bg))]/80 backdrop-blur">
       <div className="container-pad flex items-center justify-between py-3">
 
-        {/* Logo + Brand name */}
+        {/* Logo */}
         <Link
-          href="#"
+          href="/"
           className="flex items-center gap-2 text-xl font-bold tracking-tight"
         >
-          <span>Cyntax Cloud</span>
-          <Cloud className="h-9 w-9" />
+          {mounted && (
+            <Image
+              src={logo}
+              alt="Cyntax Cloud"
+              width={180}
+              height={40}
+              className="h-9 w-auto"
+              priority
+            />
+          )}
         </Link>
 
+        {/* Mobile menu button */}
         <button
           className="lg:hidden rounded-xl border border-gray-300 py-2 px-3 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800 transition"
           onClick={() => setOpen(!open)}
@@ -80,9 +100,11 @@ export default function Navbar() {
           ☰
         </button>
 
+        {/* Desktop nav */}
         <nav className="hidden lg:block">{nav}</nav>
       </div>
 
+      {/* Mobile nav */}
       {open && <div className="container-pad pb-4 lg:hidden">{nav}</div>}
     </header>
   );
