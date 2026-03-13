@@ -34,15 +34,21 @@ cyntax-cloud/
 │   ├── globals.css           # Tailwind base + custom CSS
 │   └── robots.ts             # Optional SEO configuration
 │
-├── components/               # Reusable UI components
-│   ├── Navbar.tsx
-│   ├── Hero.tsx
-│   ├── Services.tsx
-│   ├── Reviews.tsx
-│   ├── About.tsx
-│   ├── LeadForm.tsx
-│   ├── Footer.tsx
-│   └── ThemeToggle.tsx
+├── components/               # Reusable UI components                    
+│   ├── homepage/
+│   │   ├── Carousel.tsx
+│   │   ├── Footer.tsx
+│   │   ├── Hero.tsx
+│   │   ├── LeadForm.tsx
+│   │   ├── Navbar.tsx
+│   │   ├── Packages.tsx
+│   │   ├── Pricing.tsx
+│   │   ├── Reviews.tsx
+│   │   ├── Services.tsx
+│   │   ├── ThemeToggle.tsx
+│   │   └── Tooling.tsx                           
+│   ├── icons/               # Static tooling icons
+│   
 │
 ├── lib/                      # Utility and config modules
 │   └── firebaseAdmin.ts      # Firebase Admin SDK runtime initialization
