@@ -26,7 +26,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3020
+ENV PORT=3035
 
 # Copy only what's needed to run the app
 COPY package.json ./
