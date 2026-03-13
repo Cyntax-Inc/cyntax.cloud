@@ -1,0 +1,81 @@
+/* app/globals.css */
+@import "tailwindcss";
+
+/* Theme tokens */
+/* app/globals.css */
+:root {
+  --bg: 255 255 255;
+  --fg: 17 24 39;
+  --brand: 24 24 27;       /* dark gray */
+  --brand-fg: 255 255 255; /* white text */
+}
+
+.dark {
+  --bg: 12 12 12;
+  --fg: 243 244 246;
+  --brand: 249 250 251;       /* light gray */
+  --brand-fg: 24 24 27;       /* dark text */
+}
+
+
+html, body, :root { height: 100%; }
+
+body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--fg));
+}
+
+/* Container helper */
+.container-pad {
+  margin-left: auto; margin-right: auto;
+  max-width: 92rem;
+  padding-left: 1rem; padding-right: 1rem;
+}
+@media (min-width: 640px) { .container-pad { padding-left: 1.5rem; padding-right: 1.5rem; } }
+@media (min-width: 1024px){ .container-pad { padding-left: 2rem; padding-right: 2rem; } }
+
+.footer-right.footer-social {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: rgb(var(--brand)); 
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.social-link:hover {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.social-icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.8;
+}
+
+/* Light mode optional */
+@media (prefers-color-scheme: light) {
+  .social-link {
+    background: rgba(0, 0, 0, 0.06);
+  }
+  .social-link:hover {
+    background: rgba(0, 0, 0, 0.15);
+  }
+}
+
+
+@media (prefers-color-scheme: dark) {
+  select option {
+    color: #000 !important; /* force black text in dark mode */
+  }
+}
