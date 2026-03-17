@@ -1,11 +1,13 @@
-// lib/firebaseAdmin.ts
 import { App, cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 
-let app: App | null = null;
+let app: App;
 
-function getFirebaseApp() {
-  if (app) return app;
+function initFirebaseAdmin() {
+  if (getApps().length) {
+    return getApps()[0]!;
+  }
 
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
@@ -16,38 +18,25 @@ function getFirebaseApp() {
   }
 
   let serviceAccount: any;
+
   try {
     serviceAccount = JSON.parse(serviceAccountJson);
   } catch (e) {
-    console.error("[firebaseAdmin] Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY");
+    console.error("[firebaseAdmin] Failed to parse service account JSON");
     throw e;
   }
 
-  if (typeof serviceAccount.private_key !== "string") {
-    throw new Error(
-      "Service account JSON is missing a valid private_key field."
-    );
+  if (serviceAccount.private_key?.includes("\\n")) {
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
   }
 
-  // Handle escaped newlines if present
-  if (serviceAccount.private_key.includes("\\n")) {
-    serviceAccount.private_key = serviceAccount.private_key.replace(
-      /\\n/g,
-      "\n"
-    );
-  }
-
-  if (getApps().length) {
-    app = getApps()[0]!;
-  } else {
-    app = initializeApp({
-      credential: cert(serviceAccount),
-    });
-  }
-
-  return app;
+  return initializeApp({
+    credential: cert(serviceAccount),
+  });
 }
 
-export function getDb() {
-  return getFirestore(getFirebaseApp());
-}
+app = initFirebaseAdmin();
+
+export const db = getFirestore(app);
+export const adminAuth = getAuth(app);
+export const adminApp = app;
