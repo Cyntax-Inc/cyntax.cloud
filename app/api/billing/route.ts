@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "../../../lib/stripe";
+import { getStripe } from "../../../lib/stripe";
 import { adminAuth, db } from "../../../lib/firebaseAdmin";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,6 +39,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invoice already paid" }, { status: 400 });
     }
 
+    const stripe = getStripe();
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       customer_email: invoice.customerEmail,
@@ -71,6 +75,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error("Billing session error:", error);
-    return NextResponse.json({ error: "Unable to create checkout session" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Unable to create checkout session" },
+      { status: 500 }
+    );
   }
 }
