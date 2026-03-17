@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "../../../../lib/firebaseAdmin";
 import { getCurrentUserProfile } from "../../../../lib/currentUser";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
@@ -37,6 +38,8 @@ export async function PATCH(req: NextRequest) {
   try {
     const user = await getCurrentUserProfile();
     const body = await req.json();
+
+    const { db } = await import("../../../../lib/firebaseAdmin");
 
     await db.collection("users").doc(user.uid).update({
       displayName: String(body.displayName || "").trim(),
