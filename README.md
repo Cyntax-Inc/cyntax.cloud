@@ -1,4 +1,4 @@
-```markdown
+
 # 🏗️ Cyntax Cloud — Next.js Single Page App
 
 A clean, responsive **Next.js** marketing site for a concrete company with Firebase-powered form submissions, dark/light mode, and Docker-ready deployment.
@@ -20,24 +20,52 @@ A clean, responsive **Next.js** marketing site for a concrete company with Fireb
 
 ## 📁 Folder Structure
 
-```
+
 
 ```
 cyntax-cloud/
 │
-├── app/                      # Next.js App Router (no src folder)
-│   ├── api/
-│   │   └── lead/
-│   │       └── route.ts      # API endpoint to store form data in Firestore
-│   ├── layout.tsx            # Root layout with ThemeProvider and global styles
-│   ├── page.tsx              # Main SPA sections (Hero, Services, Reviews, etc.)
-│   ├── globals.css           # Tailwind base + custom CSS
-│   └── robots.ts             # Optional SEO configuration
+├── app/                                  # Next.js App Router (no src folder)
+│   ├── api/                              # Server-side API routes
+│   │   ├── billing/
+│   │   │   └── route.ts                  # Creates Stripe Checkout session for invoice payments
+│   │   ├── ticket/
+│   │   │   └── route.ts                  # Creates support tickets in Firestore and sends Postmark email
+│   │   ├── tickets/
+│   │   │   └── route.ts                  # Optional route for returning authenticated user tickets
+│   │   ├── stripe/
+│   │       └── webhook/
+│   │           └── route.ts              # Stripe webhook handler for invoice payment updates
+│   │
+│   ├── dashboard/                        # Protected client portal area
+│   │   ├── layout.tsx                    # Shared dashboard layout with themed navigation
+│   │   ├── page.tsx                      # Dashboard overview landing page
+│   │   ├── billing/
+│   │   │   └── page.tsx                  # Billing page with invoice list and pay-now flow
+│   │   └── tickets/
+│   │       ├── page.tsx                  # Ticket listing page
+│   │       └── new/
+│   │           └── page.tsx              # New ticket submission page
+│   │
+│   ├── login/
+│   │   └── page.tsx                      # Client login page using Firebase Auth
+│   │
+│   ├── globals.css                       # Global styles and Tailwind base
+│   ├── layout.tsx                        # Root application layout
+│   ├── page.tsx                          # Homepage SPA entry
+│   └── robots.ts                         # Optional robots / SEO config
 │
-├── components/               # Reusable UI components                    
+├── components/                           # Reusable UI components
+│   ├── dashboard/
+│   │   ├── DashboardNav.tsx              # Sidebar navigation for client portal
+│   │   ├── InvoiceList.tsx               # Styled invoice/payment list component
+│   │   ├── NewTicketForm.tsx             # Ticket submission form component
+│   │   ├── PortalHeader.tsx              # Optional shared dashboard page heading wrapper
+│   │   └── TicketList.tsx                # Styled support ticket list/table
+│   │
 │   ├── homepage/
 │   │   ├── Carousel.tsx
-│   │   ├── Footer.tsx
+│   │   ├── Footer.tsx                    # Footer design benchmark for portal theme
 │   │   ├── Hero.tsx
 │   │   ├── LeadForm.tsx
 │   │   ├── Navbar.tsx
@@ -46,30 +74,34 @@ cyntax-cloud/
 │   │   ├── Reviews.tsx
 │   │   ├── Services.tsx
 │   │   ├── ThemeToggle.tsx
-│   │   └── Tooling.tsx                           
-│   ├── icons/               # Static tooling icons
-│   
+│   │   └── Tooling.tsx
+│   │
+│   └── icons/                            # Static tooling icons and image assets
 │
-├── lib/                      # Utility and config modules
-│   └── firebaseAdmin.ts      # Firebase Admin SDK runtime initialization
+├── lib/                                  # Utility/config/server integration modules
+│   ├── firebase.ts                       # Firebase client SDK init for browser auth + Firestore
+│   ├── firebaseAdmin.ts                  # Firebase Admin SDK init using FIREBASE_SERVICE_ACCOUNT_KEY
+│   ├── postmark.ts                       # Postmark email client and support ticket email sender
+│   └── stripe.ts                         # Stripe server SDK initialization
 │
-├── public/                   # Static assets (images, icons, logos)
+├── public/                               # Static assets
 │
 ├── .github/
 │   └── workflows/
-│       └── docker.yml        # GitHub Actions workflow for Docker build & push
+│       └── docker.yml                    # GitHub Actions Docker build/push workflow
 │
-├── .dockerignore             # Ignore unnecessary files from image
-├── Dockerfile                # Multi-stage build for production
-├── postcss.config.js         # PostCSS setup for Tailwind
-├── tailwind.config.js        # Tailwind theme and content paths
+├── .dockerignore                         # Docker ignore rules
+├── .env.local                            # Local environment variables (not committed)
+├── Dockerfile                            # Production Docker build
 ├── package.json
-├── tsconfig.json
-└── README.md
+├── postcss.config.js
+├── README.md
+├── tailwind.config.js
+└── tsconfig.json
 
 ```
 
-````
+
 
 ---
 
@@ -80,7 +112,7 @@ cyntax-cloud/
 git clone https://github.com/your-username/cyntax-cloud.git
 cd cyntax-cloud
 npm install
-````
+```
 
 ### 2. Create `.env.local`
 
