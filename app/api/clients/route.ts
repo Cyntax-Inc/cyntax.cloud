@@ -19,6 +19,7 @@ export async function GET() {
     const clients = snapshot.docs
       .map((doc) => {
         const data = doc.data();
+        const billingAddress = data.billingAddress || {};
 
         return {
           id: doc.id,
@@ -27,6 +28,76 @@ export async function GET() {
           displayName: data.displayName || "",
           companyName: data.companyName || "",
           billingEmail: data.billingEmail || data.email || "",
+
+          billingAddressLine1:
+            data.billingAddressLine1 ||
+            data.addressLine1 ||
+            data.addresLine1 ||
+            billingAddress.line1 ||
+            "",
+          billingAddressLine2:
+            data.billingAddressLine2 ||
+            data.addressLine2 ||
+            data.addresLine2 ||
+            billingAddress.line2 ||
+            "",
+
+          billingCity:
+            data.billingCity ||
+            data.city ||
+            billingAddress.city ||
+            "",
+          billingState:
+            data.billingState ||
+            data.state ||
+            billingAddress.state ||
+            "",
+          billingPostalCode:
+            data.billingPostalCode ||
+            data.postalCode ||
+            billingAddress.postalCode ||
+            "",
+          billingCountry:
+            data.billingCountry ||
+            data.country ||
+            billingAddress.country ||
+            "",
+
+          billingAddress: {
+            line1:
+              data.billingAddressLine1 ||
+              data.addressLine1 ||
+              data.addresLine1 ||
+              billingAddress.line1 ||
+              "",
+            line2:
+              data.billingAddressLine2 ||
+              data.addressLine2 ||
+              data.addresLine2 ||
+              billingAddress.line2 ||
+              "",
+            city:
+              data.billingCity ||
+              data.city ||
+              billingAddress.city ||
+              "",
+            state:
+              data.billingState ||
+              data.state ||
+              billingAddress.state ||
+              "",
+            postalCode:
+              data.billingPostalCode ||
+              data.postalCode ||
+              billingAddress.postalCode ||
+              "",
+            country:
+              data.billingCountry ||
+              data.country ||
+              billingAddress.country ||
+              "",
+          },
+
           isActive: data.isActive !== false,
           role: data.role || "client",
         };
