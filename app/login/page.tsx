@@ -73,7 +73,7 @@ export default function LoginPage() {
               <div>
                 <p className="text-sm font-medium text-white">Protected Access</p>
                 <p className="text-sm text-white/45">
-                  Restricted to authorized Cyntax Cloud clients.
+                  For authorized Cyntax Cloud accounts.
                 </p>
               </div>
             </div>

@@ -2,17 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "../../../lib/firebaseAdmin";
 import { sendTicketEmail } from "../../../lib/postmark";
 import { getCurrentUserProfile } from "../../../lib/currentUser";
+import { canWriteInPortal } from "../../../lib/portalAccess";
+import { portalApiError } from "../../../lib/apiErrors";
 
 export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUserProfile();
 
-    const body = await req.json();
-    const { subject, category, priority, description } = body;
+    if (!canWriteInPortal(user.role)) {
+      return NextResponse.json({ error: "This account has read-only portal access" }, { status: 403 });
+    }
 
-    if (!subject || !description) {
+    const body = await req.json();
+    const { subject, category, priority, description } = body || {};
+
+    if (typeof subject !== "string" || !subject.trim() || subject.length > 160 ||
+        typeof description !== "string" || !description.trim() || description.length > 10000 ||
+        (category !== undefined && (typeof category !== "string" || category.length > 100)) ||
+        (priority !== undefined && !["Low", "Normal", "High", "Urgent"].includes(priority))) {
       return NextResponse.json(
-        { error: "Subject and description are required" },
+        { error: "Provide a subject (up to 160 characters), description (up to 10000 characters), and valid priority" },
         { status: 400 }
       );
     }
@@ -42,9 +51,6 @@ export async function POST(req: NextRequest) {
       await sendTicketEmail({
         id: ref.id,
         email: user.email,
-        clientName: user.displayName || "",
-        companyName: user.companyName || "",
-        website: user.website || "",
         subject: ticket.subject,
         category: ticket.category,
         priority: ticket.priority,
@@ -61,10 +67,6 @@ export async function POST(req: NextRequest) {
       message: "Ticket created successfully",
     });
   } catch (error: any) {
-    console.error("Ticket creation error:", error);
-    return NextResponse.json(
-      { error: error?.message || "Unable to create ticket" },
-      { status: 500 }
-    );
+    return portalApiError(error, "Unable to create ticket");
   }
 }

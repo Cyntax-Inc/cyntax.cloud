@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Building2, Pencil, Save, User, X } from "lucide-react";
+import { usePortalAccess } from "../../../components/dashboard/PortalAccessProvider";
 
 type ProfileForm = {
   displayName: string;
@@ -55,6 +56,7 @@ function DetailRow({
 }
 
 export default function ProfileSettingsPage() {
+  const { readOnly } = usePortalAccess();
   const [form, setForm] = useState<ProfileForm>(emptyForm);
   const [originalForm, setOriginalForm] = useState<ProfileForm>(emptyForm);
   const [loading, setLoading] = useState(true);
@@ -140,6 +142,7 @@ export default function ProfileSettingsPage() {
   }
 
   async function saveAll() {
+    if (readOnly) return;
     setSaving(true);
     setMessage("");
     setError("");
@@ -202,11 +205,11 @@ export default function ProfileSettingsPage() {
           Profile & Company
         </h1>
         <p className="mt-3 text-sm leading-7 text-white/60">
-          Review your account details and company information, then edit only what
-          needs to be changed.
+          Review your contact details, company information, and billing profile.
         </p>
       </div>
 
+      {readOnly && <div className="rounded-xl border border-violet-400/20 bg-violet-400/5 px-5 py-3 text-sm text-violet-200">This account has view-only access. Profile changes are managed outside the client portal.</div>}
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 md:p-8">
         <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
@@ -221,7 +224,7 @@ export default function ProfileSettingsPage() {
             </div>
           </div>
 
-          {!editingUser ? (
+          {!editingUser && !readOnly ? (
             <button
               type="button"
               onClick={() => {
@@ -234,7 +237,7 @@ export default function ProfileSettingsPage() {
               <Pencil className="h-4 w-4" />
               Edit
             </button>
-          ) : (
+          ) : editingUser ? (
             <button
               type="button"
               onClick={cancelUserEdit}
@@ -243,7 +246,7 @@ export default function ProfileSettingsPage() {
               <X className="h-4 w-4" />
               Cancel
             </button>
-          )}
+          ) : null}
         </div>
 
         {!editingUser ? (
@@ -333,7 +336,7 @@ export default function ProfileSettingsPage() {
             </div>
           </div>
 
-          {!editingCompany ? (
+          {!editingCompany && !readOnly ? (
             <button
               type="button"
               onClick={() => {
@@ -346,7 +349,7 @@ export default function ProfileSettingsPage() {
               <Pencil className="h-4 w-4" />
               Edit
             </button>
-          ) : (
+          ) : editingCompany ? (
             <button
               type="button"
               onClick={cancelCompanyEdit}
@@ -355,7 +358,7 @@ export default function ProfileSettingsPage() {
               <X className="h-4 w-4" />
               Cancel
             </button>
-          )}
+          ) : null}
         </div>
 
         {!editingCompany ? (
@@ -496,7 +499,7 @@ export default function ProfileSettingsPage() {
         )}
       </section>
 
-      {(editingUser || editingCompany) && (
+      {!readOnly && (editingUser || editingCompany) && (
         <div className="rounded-2xl border border-violet-500/20 bg-violet-500/[0.08] p-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
