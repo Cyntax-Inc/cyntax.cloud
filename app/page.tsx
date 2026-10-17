@@ -6,6 +6,7 @@ import Carousel from "../components/homepage/Carousel";
 import Packages from "../components/homepage/Packages";
 import Pricing from "../components/homepage/Pricing";
 import Reviews from "../components/homepage/Reviews";
+import Payments from "../components/homepage/Payments";
 import Footer from "../components/homepage/Footer";
 
 
@@ -20,6 +21,7 @@ export default function Page() {
       <Packages />
       <Pricing />
       <Reviews />
+      <Payments />
       <Footer />
     </main>
   );

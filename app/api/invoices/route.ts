@@ -15,6 +15,21 @@ function formatInvoiceNumber(timestamp: number) {
   return `INV-${yyyy}${mm}${dd}-${rand}`;
 }
 
+function toNumber(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+type InvoiceLineItem = {
+  description: string;
+  quantity: number;
+  rate: number; // cents
+};
+
 export async function GET() {
   try {
     const user = await getCurrentUserProfile();
@@ -30,8 +45,11 @@ export async function GET() {
 
         return {
           id: doc.id,
-          description: data.description || "",
-          amount: data.amount || 0,
+          description:
+            data.description ||
+            data.lineItems?.[0]?.description ||
+            "",
+          amount: data.amount ?? data.total ?? 0,
           currency: data.currency || "usd",
           dueDate: data.dueDate || "",
           status: data.status || "open",
@@ -60,11 +78,45 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { userId, description, amount, dueDate } = body;
 
-    if (!userId || !description || !amount || !dueDate) {
+    const {
+      userId,
+      invoiceDate,
+      paymentTerms,
+      dueDate,
+      client,
+      lineItems,
+      taxRate,
+      notes,
+    } = body;
+
+    if (!userId || !dueDate || !client || !Array.isArray(lineItems) || lineItems.length === 0) {
       return NextResponse.json(
-        { error: "userId, description, amount, and dueDate are required" },
+        {
+          error:
+            "userId, dueDate, client, and at least one line item are required",
+        },
+        { status: 400 }
+      );
+    }
+
+    const cleanedLineItems: InvoiceLineItem[] = lineItems
+      .map((item: any) => ({
+        description: String(item?.description || "").trim(),
+        quantity: toNumber(item?.quantity),
+        rate: Math.round(toNumber(item?.rate)),
+      }))
+      .filter(
+        (item) =>
+          item.description &&
+          item.quantity > 0 &&
+          Number.isFinite(item.rate) &&
+          item.rate >= 0
+      );
+
+    if (cleanedLineItems.length === 0) {
+      return NextResponse.json(
+        { error: "At least one valid line item is required" },
         { status: 400 }
       );
     }
@@ -75,15 +127,76 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
 
-    const client = clientSnap.data()!;
+    const clientDoc = clientSnap.data() || {};
     const now = Date.now();
 
+    const subtotal = cleanedLineItems.reduce(
+      (sum, item) => sum + item.quantity * item.rate,
+      0
+    );
+
+    const normalizedTaxRate = toNumber(taxRate || 0);
+    const taxAmount = Math.round(subtotal * (normalizedTaxRate / 100));
+    const total = subtotal + taxAmount;
+
+    const clientCompanyName = String(client?.companyName || "").trim();
+    const billingEmail = String(client?.billingEmail || "").trim();
+
+    const billingAddressLine1 = String(client?.billingAddress?.line1 || "").trim();
+    const billingAddressLine2 = String(client?.billingAddress?.line2 || "").trim();
+    const billingCity = String(client?.billingAddress?.city || "").trim();
+    const billingState = String(client?.billingAddress?.state || "").trim();
+    const billingPostalCode = String(client?.billingAddress?.postalCode || "").trim();
+    const billingCountry = String(client?.billingAddress?.country || "").trim();
+
+    if (
+      !clientCompanyName ||
+      !billingEmail ||
+      !billingAddressLine1 ||
+      !billingCity ||
+      !billingState ||
+      !billingPostalCode ||
+      !billingCountry
+    ) {
+      return NextResponse.json(
+        { error: "Complete client billing details are required" },
+        { status: 400 }
+      );
+    }
+
+    // Save/update client billing profile for future auto-fill
+    await db.collection("users").doc(String(userId)).set(
+      {
+        companyName: clientCompanyName,
+        billingEmail,
+        addressLine1: billingAddressLine1,
+        addressLine2: billingAddressLine2,
+        city: billingCity,
+        state: billingState,
+        postalCode: billingPostalCode,
+        country: billingCountry,
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+
+    const invoiceNumber = formatInvoiceNumber(now);
+
     const invoice = {
-      userId: client.uid || clientSnap.id,
-      clientEmail: client.email || "",
-      clientName: client.displayName || "",
-      clientCompanyName: client.companyName || "",
-      billingEmail: client.billingEmail || client.email || "",
+      userId: clientDoc.uid || clientSnap.id,
+      clientEmail: clientDoc.email || "",
+      clientName: clientDoc.displayName || "",
+      clientCompanyName: clientCompanyName,
+      billingEmail,
+
+      billingAddress: {
+        line1: billingAddressLine1,
+        line2: billingAddressLine2,
+        city: billingCity,
+        state: billingState,
+        postalCode: billingPostalCode,
+        country: billingCountry,
+      },
 
       issuerName: adminUser.displayName || "",
       issuerCompanyName: adminUser.companyName || "Cyntax Cloud",
@@ -96,12 +209,26 @@ export async function POST(req: NextRequest) {
       issuerPostalCode: adminUser.postalCode || "",
       issuerCountry: adminUser.country || "",
 
-      invoiceNumber: formatInvoiceNumber(now),
-      description: String(description).trim(),
-      amount: Number(amount),
-      currency: "usd",
+      invoiceNumber,
+      invoiceDate: invoiceDate || new Date(now).toISOString().slice(0, 10),
+      paymentTerms: String(paymentTerms || "Net 30"),
       dueDate: String(dueDate),
       status: "open",
+      currency: "usd",
+
+      lineItems: cleanedLineItems.map((item) => ({
+        ...item,
+        amount: item.quantity * item.rate,
+      })),
+
+      description: cleanedLineItems.map((item) => item.description).join(", "),
+      amount: total,
+      subtotal,
+      taxRate: normalizedTaxRate,
+      taxAmount,
+      total,
+      balanceDue: total,
+      notes: String(notes || "").trim(),
 
       stripeSessionId: null,
       stripePaymentIntentId: null,
@@ -115,7 +242,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       id: ref.id,
-      invoiceNumber: invoice.invoiceNumber,
+      invoiceNumber,
     });
   } catch (error: any) {
     console.error("Invoice creation error:", error);

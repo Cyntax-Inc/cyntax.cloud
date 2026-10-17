@@ -6,10 +6,10 @@ export async function GET() {
   try {
     const user = await getCurrentUserProfile();
 
-    const snapshot = await db
-      .collection("tickets")
-      .where("userId", "==", user.uid)
-      .get();
+    const ticketsQuery = db.collection("tickets");
+    const snapshot = user.role === "admin"
+      ? await ticketsQuery.get()
+      : await ticketsQuery.where("userId", "==", user.uid).get();
 
     const tickets = snapshot.docs.map((doc) => {
       const data = doc.data();
@@ -25,6 +25,7 @@ export async function GET() {
         lastStatusUpdateAt: data.lastStatusUpdateAt ?? null,
         lastViewedByTeamAt: data.lastViewedByTeamAt ?? null,
         description: data.description ?? "",
+        email: data.email ?? "",
       };
     });
 

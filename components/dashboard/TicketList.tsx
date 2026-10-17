@@ -1,3 +1,4 @@
+import Link from "next/link";
 type Ticket = {
   id: string;
   subject: string;
@@ -62,9 +63,10 @@ export default function TicketList({ tickets }: { tickets: Ticket[] }) {
             </div>
           ) : (
             tickets.map((ticket) => (
-              <div
+              <Link
+                href={`/dashboard/tickets/${ticket.id}`}
                 key={ticket.id}
-                className="grid gap-4 px-5 py-5 md:grid-cols-[1.4fr_0.9fr_0.9fr_0.9fr] md:items-center"
+                className="grid gap-4 px-5 py-5 transition hover:bg-white/[0.06] md:grid-cols-[1.4fr_0.9fr_0.9fr_0.9fr] md:items-center"
               >
                 <div>
                   <p className="text-sm font-medium text-white">{ticket.subject}</p>
@@ -83,7 +85,7 @@ export default function TicketList({ tickets }: { tickets: Ticket[] }) {
                     {ticket.status.replaceAll("_", " ")}
                   </span>
                 </div>
-              </div>
+              </Link>
             ))
           )}
         </div>
