@@ -1,12 +1,12 @@
+
 name: Build & Push to Docker Hub
 
 on:
   push:
-    branches: [ main, qa, test ]
+    branches: [main, qa, test]
   workflow_dispatch:
 
 env:
-  # Pull image repo from the DOCKERHUB environment secret
   DOCKERHUB_REPO: ${{ secrets.DOCKERHUB_REPO }}
   BUILD_CONTEXT: .
   DOCKERFILE: Dockerfile
@@ -36,12 +36,11 @@ jobs:
       - name: Derive tags
         id: tags
         run: |
-          # Sanitize branch to a valid Docker tag: lowercase and replace disallowed chars with '-'
           RAW_BRANCH="${GITHUB_REF_NAME}"
           BRANCH_TAG=$(echo "$RAW_BRANCH" | tr '[:upper:]' '[:lower:]' | sed -E 's#[^a-z0-9_.-]#-#g')
           SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
-          echo "branch=${BRANCH_TAG}" >> $GITHUB_OUTPUT
-          echo "sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "branch=${BRANCH_TAG}" >> "$GITHUB_OUTPUT"
+          echo "sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Docker meta
         id: meta
@@ -52,6 +51,29 @@ jobs:
             type=raw,value=${{ steps.tags.outputs.branch }}
             type=raw,value=sha-${{ steps.tags.outputs.sha }}
 
+      - name: Validate Firebase configuration
+        env:
+          FIREBASE_API_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_API_KEY }}
+          FIREBASE_AUTH_DOMAIN: ${{ vars.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          FIREBASE_PROJECT_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+          FIREBASE_STORAGE_BUCKET: ${{ vars.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+          FIREBASE_MESSAGING_SENDER_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+          FIREBASE_APP_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID }}
+        run: |
+          for name in \
+            FIREBASE_API_KEY \
+            FIREBASE_AUTH_DOMAIN \
+            FIREBASE_PROJECT_ID \
+            FIREBASE_STORAGE_BUCKET \
+            FIREBASE_MESSAGING_SENDER_ID \
+            FIREBASE_APP_ID
+          do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing Firebase configuration: $name"
+              exit 1
+            fi
+          done
+
       - name: Build & Push
         uses: docker/build-push-action@v6
         with:
@@ -61,6 +83,16 @@ jobs:
           platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+          build-args: |
+            NEXT_PUBLIC_FIREBASE_API_KEY=${{ vars.NEXT_PUBLIC_FIREBASE_API_KEY }}
+            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ vars.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ vars.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+            NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ vars.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+            NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ vars.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+            NEXT_PUBLIC_FIREBASE_APP_ID=${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID }}
+            NEXT_PUBLIC_URL=https://cyntax.cloud
+
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
