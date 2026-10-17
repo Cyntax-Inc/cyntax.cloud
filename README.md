@@ -1,206 +1,85 @@
+# Cyntax Cloud
 
-# 🏗️ Cyntax Cloud — Next.js Single Page App
+The official website and client portal for **Cyntax Inc.**
 
-A clean, responsive **Next.js** marketing site for a concrete company with Firebase-powered form submissions, dark/light mode, and Docker-ready deployment.
+Cyntax Cloud provides a centralized platform for clients to manage support requests, communicate with our team, and access account and billing information.
 
----
+## Features
 
-## 🚀 Features
+- **Client Dashboard** — Overview of active support tickets and account activity.
+- **Support Tickets** — Create, track, and manage support requests.
+- **Conversations** — Communicate directly with the support team through ticket messaging.
+- **Ticket Tracking** — Monitor ticket priority, status, and updates.
+- **Billing** — Review invoices, payment status, and available payment options.
+- **Account Management** — Access and manage personal and company information.
+- **Responsive Interface** — Designed for desktop, tablet, and mobile devices.
 
-- **Single Page App** built with **Next.js App Router**
-- **Tailwind CSS** for responsive design (light/dark mode)
-- **Hero**, **Services**, **Reviews**, **About**, **Contact Form**, and **Footer** sections
-- **Form submissions** stored securely in **Firebase Firestore** via server API route
-- **Zod validation** for clean form input handling
-- **Docker + GitHub Actions** for easy CI/CD
-- **Firebase Admin** initialized safely (runtime, not at build)
-- **SEO-ready** with metadata and robots configuration
+## Getting Started
 
----
+### Requirements
 
-## 📁 Folder Structure
+- Node.js 22+
+- npm
+- Git
+- Project environment configuration
 
+### Installation
 
+Clone the repository and install dependencies:
 
-```
-cyntax-cloud/
-│
-├── app/                                  # Next.js App Router (no src folder)
-│   ├── api/                              # Server-side API routes
-│   │   ├── billing/
-│   │   │   └── route.ts                  # Creates Stripe Checkout session for invoice payments
-│   │   ├── ticket/
-│   │   │   └── route.ts                  # Creates support tickets in Firestore and sends Postmark email
-│   │   ├── tickets/
-│   │   │   └── route.ts                  # Optional route for returning authenticated user tickets
-│   │   ├── stripe/
-│   │       └── webhook/
-│   │           └── route.ts              # Stripe webhook handler for invoice payment updates
-│   │
-│   ├── dashboard/                        # Protected client portal area
-│   │   ├── layout.tsx                    # Shared dashboard layout with themed navigation
-│   │   ├── page.tsx                      # Dashboard overview landing page
-│   │   ├── billing/
-│   │   │   └── page.tsx                  # Billing page with invoice list and pay-now flow
-│   │   └── tickets/
-│   │       ├── page.tsx                  # Ticket listing page
-│   │       └── new/
-│   │           └── page.tsx              # New ticket submission page
-│   │
-│   ├── login/
-│   │   └── page.tsx                      # Client login page using Firebase Auth
-│   │
-│   ├── globals.css                       # Global styles and Tailwind base
-│   ├── layout.tsx                        # Root application layout
-│   ├── page.tsx                          # Homepage SPA entry
-│   └── robots.ts                         # Optional robots / SEO config
-│
-├── components/                           # Reusable UI components
-│   ├── dashboard/
-│   │   ├── DashboardNav.tsx              # Sidebar navigation for client portal
-│   │   ├── InvoiceList.tsx               # Styled invoice/payment list component
-│   │   ├── NewTicketForm.tsx             # Ticket submission form component
-│   │   ├── PortalHeader.tsx              # Optional shared dashboard page heading wrapper
-│   │   └── TicketList.tsx                # Styled support ticket list/table
-│   │
-│   ├── homepage/
-│   │   ├── Carousel.tsx
-│   │   ├── Footer.tsx                    # Footer design benchmark for portal theme
-│   │   ├── Hero.tsx
-│   │   ├── LeadForm.tsx
-│   │   ├── Navbar.tsx
-│   │   ├── Packages.tsx
-│   │   ├── Pricing.tsx
-│   │   ├── Reviews.tsx
-│   │   ├── Services.tsx
-│   │   ├── ThemeToggle.tsx
-│   │   └── Tooling.tsx
-│   │
-│   └── icons/                            # Static tooling icons and image assets
-│
-├── lib/                                  # Utility/config/server integration modules
-│   ├── firebase.ts                       # Firebase client SDK init for browser auth + Firestore
-│   ├── firebaseAdmin.ts                  # Firebase Admin SDK init using FIREBASE_SERVICE_ACCOUNT_KEY
-│   ├── postmark.ts                       # Postmark email client and support ticket email sender
-│   └── stripe.ts                         # Stripe server SDK initialization
-│
-├── public/                               # Static assets
-│
-├── .github/
-│   └── workflows/
-│       └── docker.yml                    # GitHub Actions Docker build/push workflow
-│
-├── .dockerignore                         # Docker ignore rules
-├── .env.local                            # Local environment variables (not committed)
-├── Dockerfile                            # Production Docker build
-├── package.json
-├── postcss.config.js
-├── README.md
-├── tailwind.config.js
-└── tsconfig.json
-
-```
-
-
-
----
-
-## ⚙️ Setup & Development
-
-### 1. Clone and install
 ```bash
-git clone https://github.com/your-username/cyntax-cloud.git
-cd cyntax-cloud
-npm install
+git clone https://github.com/Cyntax-Inc/cyntax.cloud.git
+cd cyntax.cloud
+npm ci
 ```
 
-### 2. Create `.env.local`
+Configure your local environment using the credentials and configuration supplied by the project maintainer.
 
-```ini
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project-id.iam.gserviceaccount.com
-# Use one of these options:
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqh...\n-----END PRIVATE KEY-----\n"
-# OR
-FIREBASE_PRIVATE_KEY_BASE64=LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t...
-FIREBASE_LEADS_COLLECTION=leads
-```
+Create a `.env.local` file in the project root. Environment credentials are not included in this repository.
 
-### 3. Run the dev server
+Start the development server:
 
 ```bash
 npm run dev
-# Visit http://localhost:3000
 ```
 
----
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## 🧱 Firebase Setup
+## Development
 
-This project expects a Firestore collection for leads:
+| Command | Description |
+|---|---|
+| `npm run dev` | Start the local development server |
+| `npm run build` | Create a production build |
+| `npm run start` | Start the production server |
+| `npm run lint` | Run code linting |
+| `npm run test:unit` | Run unit tests |
 
-```
-Collection: leads
-Fields:
-  name        string
-  email       string
-  phone       string
-  service     string
-  message     string
-  createdAt   timestamp
-  status      string ("new")
-```
-
----
-
-## 🐳 Docker
-
-### Build and run locally
+To update an existing local checkout:
 
 ```bash
-docker build -t cyntax-cloud .
-docker run -p 3000:3000 \
-  -e FIREBASE_PROJECT_ID=your-project-id \
-  -e FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project-id.iam.gserviceaccount.com \
-  -e FIREBASE_PRIVATE_KEY_BASE64=$(cat key.b64) \
-  cyntax-cloud
+git pull
+npm ci
 ```
 
-### Publish via GitHub Actions
+## Application Access
 
-* Set the following **repository secrets** in GitHub:
+Cyntax Cloud is designed as a self-service portal. Authenticated users can access their own tickets and account information.
 
-  * `DOCKERHUB_USERNAME`
-  * `DOCKERHUB_TOKEN`
-* Push to `main`, or trigger manually:
+Administrative and support management workflows are handled separately through **admin.cyntax.cloud**, with access restricted to authorized personnel.
 
-```yaml
-.github/workflows/docker.yml
-```
+## Security
 
-This builds and pushes your image to Docker Hub automatically.
+Security and client privacy are important considerations throughout development. Sensitive configuration, credentials, and environment files should never be committed to the repository.
 
----
+Please report security concerns privately to the Cyntax team rather than through public issues.
 
-## 🌗 Theming & Customization
+## About Cyntax Inc.
 
-* Dark/light mode handled by **`next-themes`**
-* Update brand colors in `tailwind.config.js`
-* Replace hero image, text, and testimonials in respective components
+Cyntax Inc. provides software development, infrastructure, and technology services.
+
+Visit [cyntax.cloud](https://cyntax.cloud) to learn more.
 
 ---
 
-## 🧰 Tech Stack
-
-* **Next.js 14+ (App Router)**
-* **Tailwind CSS v4**
-* **Firebase Admin SDK**
-* **Zod** for form validation
-* **Docker & GitHub Actions** for CI/CD
-
----
-
-## 🧾 License
-
-MIT © 2026 Cyntax Cloud — Built with ❤️ using Next.js
-
+© Cyntax Inc. All rights reserved.

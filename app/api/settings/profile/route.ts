@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserProfile } from "../../../../lib/currentUser";
+import { canWriteInPortal } from "../../../../lib/portalAccess";
+import { portalApiError } from "../../../../lib/apiErrors";
 
 export const dynamic = "force-dynamic";
 
@@ -27,16 +29,16 @@ export async function GET() {
       },
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error?.message || "Unable to load profile" },
-      { status: 500 }
-    );
+    return portalApiError(error, "Unable to load profile");
   }
 }
 
 export async function PATCH(req: NextRequest) {
   try {
     const user = await getCurrentUserProfile();
+    if (!canWriteInPortal(user.role)) {
+      return NextResponse.json({ error: "This account has read-only portal access" }, { status: 403 });
+    }
     const body = await req.json();
 
     const { db } = await import("../../../../lib/firebaseAdmin");
@@ -60,9 +62,6 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error?.message || "Unable to update profile" },
-      { status: 500 }
-    );
+    return portalApiError(error, "Unable to update profile");
   }
 }

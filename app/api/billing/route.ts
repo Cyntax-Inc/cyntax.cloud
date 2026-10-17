@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "../../../lib/stripe";
 import { db } from "../../../lib/firebaseAdmin";
 import { getCurrentUserProfile } from "../../../lib/currentUser";
+import { canWriteInPortal, ownsPortalResource } from "../../../lib/portalAccess";
+import { portalApiError } from "../../../lib/apiErrors";
 
 export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUserProfile();
+    if (!canWriteInPortal(user.role)) {
+      return NextResponse.json({ error: "This account has read-only portal access" }, { status: 403 });
+    }
     const body = await req.json();
     const { invoiceId } = body;
 
@@ -22,8 +27,12 @@ export async function POST(req: NextRequest) {
 
     const invoice = invoiceSnap.data()!;
 
-    if (invoice.userId !== user.uid) {
+    if (!ownsPortalResource(user.uid, invoice.userId)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (invoice.status === "void") {
+      return NextResponse.json({ error: "Void invoices cannot be paid" }, { status: 409 });
     }
 
     if (invoice.status === "paid") {
@@ -64,10 +73,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
-    console.error("Billing route error:", error);
-    return NextResponse.json(
-      { error: error?.message || "Unable to create checkout session" },
-      { status: 500 }
-    );
+    return portalApiError(error, "Unable to create checkout session");
   }
 }

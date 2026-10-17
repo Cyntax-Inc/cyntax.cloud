@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { adminAuth, db } from "./firebaseAdmin";
 
-export async function getCurrentUserProfile() {
+export const getCurrentUserProfile = cache(async function getCurrentUserProfile() {
   const cookieStore = await cookies();
   const session = cookieStore.get("session")?.value;
 
@@ -9,7 +10,9 @@ export async function getCurrentUserProfile() {
     throw new Error("Unauthorized");
   }
 
-  const decoded = await adminAuth.verifySessionCookie(session, true);
+  const decoded = await adminAuth.verifySessionCookie(session, true).catch(() => {
+    throw new Error("Unauthorized");
+  });
   const uid = decoded.uid;
 
   const userRef = db.collection("users").doc(uid);
@@ -71,4 +74,4 @@ export async function getCurrentUserProfile() {
     createdAt: user.createdAt || null,
     updatedAt: user.updatedAt || null,
   };
-}
+});

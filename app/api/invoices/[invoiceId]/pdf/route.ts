@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { db } from "../../../../../lib/firebaseAdmin";
 import { getCurrentUserProfile } from "../../../../../lib/currentUser";
+import { ownsPortalResource } from "../../../../../lib/portalAccess";
 
 function money(v: number) {
   return new Intl.NumberFormat("en-US", {
@@ -92,10 +93,7 @@ export async function GET(
 
   const inv: any = snap.data() || {};
 
-  if (
-    inv.userId !== user.uid &&
-    (user.role || "").toLowerCase() !== "admin"
-  ) {
+  if (!ownsPortalResource(user.uid, inv.userId)) {
     return new Response("Forbidden", { status: 403 });
   }
 

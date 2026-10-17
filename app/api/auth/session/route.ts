@@ -11,6 +11,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing idToken" }, { status: 400 });
     }
 
+    // Require a recent sign-in before minting a long-lived session.
+    const decoded = await adminAuth.verifyIdToken(idToken, true);
+    if (!decoded.auth_time || Date.now() / 1000 - decoded.auth_time > 5 * 60) {
+      return NextResponse.json({ error: "Please sign in again" }, { status: 401 });
+    }
+
     const sessionCookie = await adminAuth.createSessionCookie(idToken, {
       expiresIn: EXPIRES_IN,
     });

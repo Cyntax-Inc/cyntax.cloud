@@ -44,17 +44,19 @@ const links = [
 ];
 
 function NavLinks({
+  readOnly,
   pathname,
   onNavigate,
 }: {
   pathname: string;
+  readOnly: boolean;
   onNavigate?: () => void;
 }) {
   return (
     <>
       <nav className="flex flex-col gap-2">
-        {links.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
+        {links.filter(({ href }) => !readOnly || href !== "/dashboard/tickets/new").map(({ href, label, icon: Icon }) => {
+          const active = pathname === href || (href === "/dashboard/tickets" && pathname.startsWith("/dashboard/tickets/") && pathname !== "/dashboard/tickets/new");
 
           return (
             <Link
@@ -83,13 +85,14 @@ function NavLinks({
       </nav>
 
       <div className="mt-4 border-t border-white/10 pt-4">
+        {readOnly && <p className="mb-3 rounded-lg border border-violet-400/20 bg-violet-400/5 px-3 py-2 text-xs text-violet-200/80">View-only account</p>}
         <LogoutButton />
       </div>
     </>
   );
 }
 
-export default function DashboardNav() {
+export default function DashboardNav({ readOnly }: { readOnly: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -152,7 +155,7 @@ export default function DashboardNav() {
 
           {open ? (
             <div className="mt-4 border-t border-white/10 pt-4">
-              <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} />
+              <NavLinks pathname={pathname} readOnly={readOnly} onNavigate={() => setOpen(false)} />
             </div>
           ) : null}
         </div>
@@ -172,7 +175,7 @@ export default function DashboardNav() {
           </div>
         </div>
 
-        <NavLinks pathname={pathname} />
+        <NavLinks pathname={pathname} readOnly={readOnly} />
       </aside>
     </>
   );

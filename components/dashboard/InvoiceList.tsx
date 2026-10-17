@@ -8,7 +8,7 @@ type Invoice = {
   amount: number;
   currency: string;
   dueDate: string;
-  status: "paid" | "open" | "past_due" | "void";
+  status: "paid" | "open" | "past_due" | "void" | "expired";
   invoiceNumber?: string;
 };
 
@@ -17,6 +17,7 @@ const statusStyles: Record<Invoice["status"], string> = {
   open: "border-violet-400/20 bg-violet-500/10 text-violet-300",
   past_due: "border-rose-400/20 bg-rose-500/10 text-rose-300",
   void: "border-white/10 bg-white/[0.06] text-white/60",
+  expired: "border-amber-400/20 bg-amber-500/10 text-amber-300",
 };
 
 function formatMoney(amount: number, currency = "usd") {
@@ -29,9 +30,11 @@ function formatMoney(amount: number, currency = "usd") {
 export default function InvoiceList({
   invoices,
   onPay,
+  payingId,
 }: {
   invoices: Invoice[];
   onPay?: (invoiceId: string) => void;
+  payingId?: string | null;
 }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 md:p-8">
@@ -91,20 +94,22 @@ export default function InvoiceList({
                   <p className="text-lg font-semibold text-white">
                     {formatMoney(invoice.amount, invoice.currency)}
                   </p>
-                  <p className="text-xs text-white/45">USD</p>
+                  <p className="text-xs text-white/45">{invoice.currency.toUpperCase()}</p>
                 </div>
 
-                {invoice.status !== "paid" && invoice.status !== "void" ? (
+                {onPay && invoice.status !== "paid" && invoice.status !== "void" ? (
                   <button
+                    type="button"
+                    disabled={Boolean(payingId)}
                     onClick={() => onPay?.(invoice.id)}
                     className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-medium text-white transition hover:bg-violet-500"
                   >
-                    Pay Now
+                    {payingId === invoice.id ? "Redirecting..." : "Pay Now"}
                     <CreditCard className="h-4 w-4" />
                   </button>
                 ) : (
                   <span className="inline-flex h-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] px-5 text-sm font-medium text-white/60">
-                    {invoice.status === "paid" ? "Paid" : "Void"}
+                    {invoice.status === "paid" ? "Paid" : invoice.status === "void" ? "Void" : "View only"}
                   </span>
                 )}
               </div>

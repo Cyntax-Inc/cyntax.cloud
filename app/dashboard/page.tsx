@@ -3,348 +3,129 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowRight,
-  Clock3,
-  CreditCard,
-  LifeBuoy,
-  PlusCircle,
-  ReceiptText,
+  ArrowRight, CircleAlert, Clock3, CreditCard, LifeBuoy,
+  Plus, RefreshCw, TicketCheck, TicketPlus,
 } from "lucide-react";
+import { usePortalAccess } from "../../components/dashboard/PortalAccessProvider";
+import {
+  type TicketSummary, formatTicketDate, isActiveTicket,
+  sortTickets, ticketStatusLabel, ticketStatusStyle,
+} from "../../lib/ticketPresentation";
 
-type Ticket = {
-  id: string;
-  subject: string;
-  category?: string;
-  priority?: string;
-  status: "open" | "in_progress" | "waiting_on_client" | "resolved" | "closed";
-  createdAt?: number | null;
-  lastStatusUpdateAt?: number | null;
-};
-
-const actions = [
-  {
-    title: "Support Tickets",
-    description: "View your current and previous tickets.",
-    href: "/dashboard/tickets",
-    icon: LifeBuoy,
-  },
-  {
-    title: "Submit New Ticket",
-    description: "Open a new support request.",
-    href: "/dashboard/tickets/new",
-    icon: PlusCircle,
-  },
-  {
-    title: "Billing & Payments",
-    description: "Review invoices and payments.",
-    href: "/dashboard/billing",
-    icon: CreditCard,
-  },
-];
-
-const statusStyles: Record<Ticket["status"], string> = {
-  open: "border-emerald-400/20 bg-emerald-500/10 text-emerald-300",
-  in_progress: "border-violet-400/20 bg-violet-500/10 text-violet-300",
-  waiting_on_client: "border-amber-400/20 bg-amber-500/10 text-amber-300",
-  resolved: "border-sky-400/20 bg-sky-500/10 text-sky-300",
-  closed: "border-white/10 bg-white/[0.06] text-white/60",
-};
-
-function formatDate(value?: number | null) {
-  if (!value) return "—";
-
-  try {
-    return new Date(value).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return "—";
-  }
-}
+type Invoice = { id: string; amount: number; currency: string; status: string };
 
 export default function DashboardPage() {
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [ticketsLoading, setTicketsLoading] = useState(true);
-  const [ticketsError, setTicketsError] = useState("");
+  const { readOnly } = usePortalAccess();
+  const [tickets, setTickets] = useState<TicketSummary[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
-    let active = true;
-
-    async function loadTickets() {
+    const controller = new AbortController();
+    async function load() {
+      setLoading(true);
+      setError("");
       try {
-        setTicketsLoading(true);
-        setTicketsError("");
-
-        const res = await fetch("/api/tickets", {
-          method: "GET",
-          cache: "no-store",
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || "Failed to load tickets");
+        const [ticketsRes, invoicesRes] = await Promise.all([
+          fetch("/api/tickets", { cache: "no-store", signal: controller.signal }),
+          fetch("/api/invoices", { cache: "no-store", signal: controller.signal }),
+        ]);
+        const [ticketData, invoiceData] = await Promise.all([ticketsRes.json(), invoicesRes.json()]);
+        if (!ticketsRes.ok) throw new Error(ticketData.error || "Unable to load tickets");
+        if (!invoicesRes.ok) throw new Error(invoiceData.error || "Unable to load billing summary");
+        if (controller.signal.aborted) return;
+        setTickets(Array.isArray(ticketData.tickets) ? ticketData.tickets : []);
+        setInvoices(Array.isArray(invoiceData.invoices) ? invoiceData.invoices : []);
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          setError(err instanceof Error ? err.message : "Unable to load your overview");
         }
-
-        if (!active) return;
-
-        setTickets(Array.isArray(data.tickets) ? data.tickets : []);
-      } catch (err: any) {
-        console.error(err);
-        if (!active) return;
-        setTicketsError(err?.message || "Unable to load tickets.");
-        setTickets([]);
       } finally {
-        if (active) {
-          setTicketsLoading(false);
-        }
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
+    void load();
+    return () => controller.abort();
+  }, [refresh]);
 
-    loadTickets();
+  const activeTickets = useMemo(() => tickets.filter(isActiveTicket).sort(sortTickets), [tickets]);
+  const summary = useMemo(() => ({
+    total: activeTickets.length,
+    open: activeTickets.filter((ticket) => ticket.status === "open").length,
+    inProgress: activeTickets.filter((ticket) => ticket.status === "in_progress").length,
+    awaiting: activeTickets.filter((ticket) => ticket.status === "waiting_on_client").length,
+  }), [activeTickets]);
+  const outstandingInvoices = invoices.filter((invoice) => invoice.status === "open" || invoice.status === "past_due" || invoice.status === "expired");
+  const balances = outstandingInvoices.reduce<Record<string, number>>((acc, invoice) => {
+    const currency = (invoice.currency || "usd").toUpperCase();
+    acc[currency] = (acc[currency] || 0) + (Number(invoice.amount) || 0);
+    return acc;
+  }, {});
+  const balanceSummary = Object.keys(balances).length
+    ? Object.entries(balances).map(([currency, amount]) =>
+        new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount / 100)).join(" / ")
+    : "$0.00";
 
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const ticketSummary = useMemo(() => {
-    const open = tickets.filter((t) => t.status === "open").length;
-    const inProgress = tickets.filter((t) => t.status === "in_progress").length;
-    const waiting = tickets.filter((t) => t.status === "waiting_on_client").length;
-    const resolved = tickets.filter((t) => t.status === "resolved").length;
-
-    return {
-      total: tickets.length,
-      open,
-      inProgress,
-      waiting,
-      resolved,
-    };
-  }, [tickets]);
-
-  const recentTickets = useMemo(() => tickets.filter(t => t.status !== "closed" && t.status !== "resolved").slice(0, 5), [tickets]);
+  const stats = [
+    { label: "Active tickets", count: summary.total, hint: "Open, in progress, or awaiting a reply", icon: LifeBuoy },
+    { label: "Awaiting your reply", count: summary.awaiting, hint: "Requests that need your attention", icon: CircleAlert },
+    { label: "In progress", count: summary.inProgress, hint: "Currently being worked on", icon: Clock3 },
+    { label: "Open invoices", count: outstandingInvoices.length, hint: balanceSummary + " outstanding", icon: CreditCard },
+  ];
 
   return (
-    <div className="space-y-8">
-      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-violet-500/[0.06] p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-400">
-          Cyntax Cloud Portal
-        </p>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white md:text-4xl">
-          Support and billing, streamlined.
-        </h1>
-        <p className="mt-4 max-w-2xl text-sm leading-7 text-white/60">
-          Manage tickets, review service activity, and complete invoice payments through a
-          secure and simplified client dashboard.
-        </p>
-      </div>
-
-      <section className="space-y-4">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-400">
-            Quick Actions
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-            Jump right in
-          </h2>
+    <div className="space-y-7">
+      <header className="relative overflow-hidden rounded-3xl border border-violet-400/15 bg-gradient-to-br from-[#191525] via-[#10101b] to-[#0b0b11] p-6 sm:p-9">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-violet-600/10 blur-3xl" />
+        <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-violet-300">Cyntax Cloud / Client portal</p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">Your service overview</h1>
+            <p className="mt-3 max-w-xl text-sm leading-7 text-white/60">Stay on top of support requests, conversations, and account billing in one place.</p>
+            {readOnly && <span className="mt-4 inline-flex rounded-full border border-violet-400/25 bg-violet-400/10 px-3 py-1.5 text-xs font-medium text-violet-200">View-only account</span>}
+          </div>
+          {!readOnly && <Link href="/dashboard/tickets/new" className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-semibold text-white transition hover:bg-violet-500"><Plus className="h-4 w-4" />New support ticket</Link>}
         </div>
+      </header>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          {actions.map(({ title, description, href, icon: Icon }) => (
-            <Link
-              key={title}
-              href={href}
-              className="group inline-flex min-h-[120px] flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-violet-400/30 hover:bg-white/[0.05]"
-            >
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/10">
-                <Icon className="h-5 w-5 text-violet-400" />
-              </div>
+      {error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200"><span>{error}</span><button type="button" onClick={() => setRefresh((n) => n + 1)} className="inline-flex items-center gap-2 font-medium underline"><RefreshCw className="h-4 w-4" />Retry</button></div>}
 
-              <div className="mt-4">
-                <h3 className="text-base font-semibold text-white">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-white/60">{description}</p>
-              </div>
-
-              <div className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-violet-400 transition group-hover:text-violet-300">
-                Open
-                <ArrowRight className="h-4 w-4" />
-              </div>
-            </Link>
-          ))}
-        </div>
+      <section aria-label="Account snapshot" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map(({ label, count, hint, icon: Icon }) => (
+          <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5">
+            <div className="flex items-center justify-between gap-3"><p className="text-sm text-white/65">{label}</p><Icon className="h-4 w-4 text-violet-300" aria-hidden="true" /></div>
+            <p className="mt-4 text-3xl font-semibold tracking-tight text-white tabular-nums">{loading || error ? "—" : count}</p>
+            <p className="mt-2 text-xs leading-5 text-white/40">{label === "Open invoices" && (loading || error) ? "Invoice balance" : hint}</p>
+          </div>
+        ))}
       </section>
 
-      <div className="grid gap-6 md:grid-cols-4">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-          <p className="text-sm text-white/45">Total Tickets</p>
-          <p className="mt-3 text-3xl font-semibold text-white">
-            {ticketsLoading ? "—" : ticketSummary.total}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-          <p className="text-sm text-white/45">Open Tickets</p>
-          <p className="mt-3 text-3xl font-semibold text-white">
-            {ticketsLoading ? "—" : ticketSummary.open}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-          <p className="text-sm text-white/45">In Progress</p>
-          <p className="mt-3 text-3xl font-semibold text-white">
-            {ticketsLoading ? "—" : ticketSummary.inProgress}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-          <p className="text-sm text-white/45">Outstanding Balance</p>
-          <p className="mt-3 text-3xl font-semibold text-white">$0.00</p>
-          <p className="mt-2 text-xs text-white/40">
-            Billing summary will update from live invoices.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 md:p-8">
-          <div className="flex flex-col gap-3 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-400">
-                Recent Tickets
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                Latest support activity
-              </h2>
-            </div>
-
-            <Link
-              href="/dashboard/tickets"
-              className="inline-flex items-center gap-2 text-sm font-medium text-violet-400 transition hover:text-violet-300"
-            >
-              View all tickets
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,0.8fr)]">
+        <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035]">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-5 sm:px-7">
+            <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-300">Support queue</p><h2 className="mt-2 text-xl font-semibold text-white">Active requests</h2><p className="mt-1 text-xs text-white/45">Prioritized by urgency, status, and recent activity</p></div>
+            <Link className="inline-flex items-center gap-2 text-sm font-medium text-violet-300 hover:text-violet-200" href="/dashboard/tickets">All tickets <ArrowRight className="h-4 w-4" /></Link>
           </div>
-
-          {ticketsLoading ? (
-            <div className="mt-6 text-sm text-white/60">Loading tickets...</div>
-          ) : ticketsError ? (
-            <div className="mt-6 rounded-xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
-              {ticketsError}
-            </div>
-          ) : recentTickets.length === 0 ? (
-            <div className="mt-6 rounded-2xl border border-dashed border-white/10 bg-white/[0.04] px-6 py-10 text-center">
-              <h3 className="text-lg font-semibold text-white">No tickets yet</h3>
-              <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-white/55">
-                You do not have any current or previous support requests.
-              </p>
-              <Link
-                href="/dashboard/tickets/new"
-                className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-medium text-white transition hover:bg-violet-500"
-              >
-                Open New Ticket
-                <PlusCircle className="h-4 w-4" />
-              </Link>
-            </div>
-          ) : (
-            <div className="mt-6 space-y-4">
-              {recentTickets.map((ticket) => (
-                <Link
-                  href={`/dashboard/tickets/${ticket.id}`}
-                  key={ticket.id}
-                  className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition hover:border-violet-400/30 hover:bg-white/[0.06] md:flex-row md:items-center md:justify-between"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-white">
-                      {ticket.subject}
-                    </p>
-                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-white/45">
-                      <span>{ticket.category || "General Support"}</span>
-                      <span>•</span>
-                      <span>Opened {formatDate(ticket.createdAt)}</span>
-                      <span>•</span>
-                      <span>
-                        Last update{" "}
-                        {ticket.lastStatusUpdateAt
-                          ? formatDate(ticket.lastStatusUpdateAt)
-                          : "Awaiting team review"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <span
-                    className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-medium capitalize ${statusStyles[ticket.status]}`}
-                  >
-                    {ticket.status.replaceAll("_", " ")}
-                  </span>
+          {loading ? <p className="px-7 py-10 text-sm text-white/45">Loading support activity...</p>
+            : error ? <p className="px-7 py-10 text-sm text-white/45">Activity is temporarily unavailable.</p>
+            : activeTickets.length === 0 ? <div className="px-7 py-12 text-center"><TicketCheck className="mx-auto h-9 w-9 text-emerald-300/70"/><h3 className="mt-4 text-base font-semibold text-white">All caught up</h3><p className="mt-2 text-sm text-white/50">You have no active support requests.</p>{!readOnly && <Link href="/dashboard/tickets/new" className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-violet-300"><TicketPlus className="h-4 w-4" />Create a ticket</Link>}</div>
+            : <div className="divide-y divide-white/10">{activeTickets.slice(0, 6).map((ticket) => (
+                <Link key={ticket.id} href={`/dashboard/tickets/${encodeURIComponent(ticket.id)}`} className="group flex flex-col gap-3 px-5 py-4 transition hover:bg-white/[0.04] sm:flex-row sm:items-center sm:justify-between sm:px-7">
+                  <div className="min-w-0"><p className="truncate text-sm font-semibold text-white group-hover:text-violet-200">{ticket.subject}</p><p className="mt-1.5 text-xs text-white/40">{ticket.category || "General support"} <span aria-hidden="true">·</span> Updated {formatTicketDate(ticket.updatedAt || ticket.createdAt)}</p></div>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2"><span className="rounded-full border border-white/10 px-2.5 py-1 text-xs text-white/65">{ticket.priority || "Normal"}</span><span className={`rounded-full border px-2.5 py-1 text-xs ${ticketStatusStyle[ticket.status] || ticketStatusStyle.open}`}>{ticketStatusLabel[ticket.status] || "Open"}</span><ArrowRight className="hidden h-4 w-4 text-white/35 sm:block"/></div>
                 </Link>
-              ))}
-            </div>
-          )}
+              ))}</div>}
         </section>
 
-        <div className="space-y-6">
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 md:p-8">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/10">
-                <ReceiptText className="h-5 w-5 text-violet-400" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-400">
-                  Billing Summary
-                </p>
-                <h2 className="mt-1 text-xl font-semibold text-white">
-                  Account billing
-                </h2>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-4">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                <p className="text-sm text-white/45">Outstanding Balance</p>
-                <p className="mt-2 text-2xl font-semibold text-white">$0.00</p>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                <p className="text-sm text-white/45">Open Invoices</p>
-                <p className="mt-2 text-2xl font-semibold text-white">0</p>
-              </div>
-
-              <div className="rounded-2xl border border-violet-500/20 bg-violet-500/[0.08] p-4 text-sm leading-7 text-white/70">
-                Billing data will appear here once live invoices are connected to Firestore.
-              </div>
-
-              <Link
-                href="/dashboard/billing"
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-medium text-white transition hover:bg-violet-500"
-              >
-                Open Billing
-                <CreditCard className="h-4 w-4" />
-              </Link>
-            </div>
+        <div className="space-y-5">
+          <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
+            <div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10"><CreditCard className="h-5 w-5 text-violet-300"/></div><div><h2 className="font-semibold">Billing overview</h2><p className="text-xs text-white/45">Invoices linked to your account</p></div></div>
+            <div className="mt-6 rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-xs text-white/45">Outstanding balance</p><p className="mt-2 break-words text-2xl font-semibold text-white">{loading || error ? "—" : balanceSummary}</p><p className="mt-2 text-xs text-white/40">{loading || error ? "Loading..." : `${outstandingInvoices.length} unpaid invoice${outstandingInvoices.length === 1 ? "" : "s"}`}</p></div>
+            <Link href="/dashboard/billing" className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 px-4 py-3 text-sm font-medium text-white/85 transition hover:border-violet-400/40 hover:bg-violet-500/10">View billing <ArrowRight className="h-4 w-4"/></Link>
           </section>
-
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-            <div className="flex items-center gap-3">
-              <Clock3 className="h-5 w-5 text-violet-400" />
-              <h2 className="text-lg font-semibold text-white">Status Snapshot</h2>
-            </div>
-
-            <div className="mt-5 grid gap-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-white/60">Waiting on Client</span>
-                <span className="text-white">{ticketsLoading ? "—" : ticketSummary.waiting}</span>
-              </div>
-
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-white/60">Resolved</span>
-                <span className="text-white">{ticketsLoading ? "—" : ticketSummary.resolved}</span>
-              </div>
-            </div>
-          </section>
+          <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"><h2 className="font-semibold">Ticket status</h2><p className="mt-1 text-xs text-white/45">Only active requests are counted</p><div className="mt-5 space-y-4">{[{ label: "Open", count: summary.open },{ label: "In progress", count: summary.inProgress },{ label: "Awaiting client", count: summary.awaiting }].map((item) => <div key={item.label} className="flex items-center justify-between gap-4 text-sm"><span className="text-white/55">{item.label}</span><span className="font-semibold tabular-nums text-white">{loading || error ? "—" : item.count}</span></div>)}</div></section>
         </div>
       </div>
     </div>

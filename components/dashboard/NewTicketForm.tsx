@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Send } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const categories = [
   "General Support",
@@ -14,6 +15,7 @@ const categories = [
 ];
 
 export default function NewTicketForm() {
+  const router = useRouter();
   const [subject, setSubject] = useState("");
   const [category, setCategory] = useState(categories[0]);
   const [priority, setPriority] = useState("Normal");
@@ -58,11 +60,11 @@ export default function NewTicketForm() {
         throw new Error(data.error || "Ticket submission failed");
       }
 
-      setSubject("");
-      setCategory(categories[0]);
-      setPriority("Normal");
-      setDescription("");
       setSubmitted(true);
+      if (typeof data.id === "string") {
+        router.push(`/dashboard/tickets/${encodeURIComponent(data.id)}`);
+        router.refresh();
+      }
     } catch (err: any) {
       console.error(err);
       setError(err?.message || "Unable to submit ticket.");
@@ -94,6 +96,7 @@ export default function NewTicketForm() {
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               required
+              maxLength={160}
               placeholder="Example: VPS deployment issue"
               className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-violet-400/50"
             />
@@ -139,6 +142,7 @@ export default function NewTicketForm() {
             onChange={(e) => setDescription(e.target.value)}
             required
             rows={8}
+            maxLength={10000}
             placeholder="Describe the issue, timeline, affected systems, and any relevant details."
             className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-violet-400/50"
           />
