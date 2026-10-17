@@ -2,3 +2,5 @@ node_modules
 .next
 .env
 .env.local
+*secrets*
+.DS_Store
