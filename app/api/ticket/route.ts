@@ -22,6 +22,9 @@ export async function POST(req: NextRequest) {
     const ticket = {
       userId: user.uid,
       email: user.email,
+      clientName: user.displayName || "",
+      companyName: user.companyName || "",
+      website: user.website || "",
       subject: String(subject).trim(),
       category: category ? String(category).trim() : "General Support",
       priority: priority ? String(priority).trim() : "Normal",
@@ -39,6 +42,9 @@ export async function POST(req: NextRequest) {
       await sendTicketEmail({
         id: ref.id,
         email: user.email,
+        clientName: user.displayName || "",
+        ompanyName: user.companyName || "",
+        website: user.website || "",
         subject: ticket.subject,
         category: ticket.category,
         priority: ticket.priority,

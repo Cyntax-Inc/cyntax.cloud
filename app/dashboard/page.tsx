@@ -125,7 +125,7 @@ export default function DashboardPage() {
     };
   }, [tickets]);
 
-  const recentTickets = useMemo(() => tickets.slice(0, 5), [tickets]);
+  const recentTickets = useMemo(() => tickets.filter(t => t.status !== "closed" && t.status !== "resolved").slice(0, 5), [tickets]);
 
   return (
     <div className="space-y-8">

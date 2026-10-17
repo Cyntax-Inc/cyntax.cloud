@@ -15,12 +15,14 @@ export async function POST(req: NextRequest, { params }: Context) {
       const snap = await tx.get(ref);
       if (!snap.exists) return "not_found";
       if (user.role !== "admin" && snap.data()?.userId !== user.uid) return "forbidden";
+      if (snap.data()?.status === "closed") return "closed";
       const messageRef = ref.collection("messages").doc();
       tx.create(messageRef, { text: body.message.trim(), authorId: user.uid, authorEmail: user.email, authorRole: user.role === "admin" ? "admin" : "client", createdAt: now });
       tx.update(ref, { updatedAt: now });
       return messageRef.id;
     });
     if (result === "not_found") return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
+    if (result === "closed") return NextResponse.json({ error: "This ticket is closed. Contact support to reopen it." }, { status: 409 });
     if (result === "forbidden") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     return NextResponse.json({ ok: true, id: result });
   } catch (error: unknown) {
