@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
         id: ref.id,
         email: user.email,
         clientName: user.displayName || "",
-        ompanyName: user.companyName || "",
+        companyName: user.companyName || "",
         website: user.website || "",
         subject: ticket.subject,
         category: ticket.category,

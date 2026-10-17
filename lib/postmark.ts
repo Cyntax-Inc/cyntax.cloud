@@ -8,6 +8,9 @@ type TicketEmailPayload = {
   priority: string;
   description: string;
   status: string;
+  clientName?: string;
+  companyName?: string;
+  website?: string;
 };
 
 function getPostmarkClient() {
