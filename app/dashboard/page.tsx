@@ -252,9 +252,10 @@ export default function DashboardPage() {
           ) : (
             <div className="mt-6 space-y-4">
               {recentTickets.map((ticket) => (
-                <div
+                <Link
+                  href={`/dashboard/tickets/${ticket.id}`}
                   key={ticket.id}
-                  className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-5 md:flex-row md:items-center md:justify-between"
+                  className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition hover:border-violet-400/30 hover:bg-white/[0.06] md:flex-row md:items-center md:justify-between"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-white">
@@ -279,7 +280,7 @@ export default function DashboardPage() {
                   >
                     {ticket.status.replaceAll("_", " ")}
                   </span>
-                </div>
+                </Link>
               ))}
             </div>
           )}
