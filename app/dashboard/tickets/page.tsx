@@ -17,6 +17,7 @@ type Ticket = {
 
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [showClosed, setShowClosed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -77,5 +78,12 @@ export default function TicketsPage() {
     );
   }
 
-  return <TicketList tickets={tickets} />;
+  const visible = tickets.filter(t => showClosed ? (t.status === "closed" || t.status === "resolved") : t.status !== "closed" && t.status !== "resolved");
+  return <div className="space-y-4">
+    <div className="flex flex-wrap items-center gap-3">
+      <button type="button" onClick={() => setShowClosed(false)} className={`rounded-xl px-4 py-2 text-sm ${!showClosed ? "bg-violet-600 text-white" : "border border-white/10 text-white/60"}`}>Unresolved ({tickets.filter(t => t.status !== "closed" && t.status !== "resolved").length})</button>
+      <button type="button" onClick={() => setShowClosed(true)} className={`rounded-xl px-4 py-2 text-sm ${showClosed ? "bg-violet-600 text-white" : "border border-white/10 text-white/60"}`}>Resolved / Closed ({tickets.filter(t => t.status === "closed" || t.status === "resolved").length})</button>
+    </div>
+    <TicketList tickets={visible} />
+  </div>;
 }
