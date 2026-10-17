@@ -1,3 +1,5 @@
+import SubscribeForm from "./SubscribeForm";
+
 export default function Hero() {
   return (
     <section className="container-pad min-h-screen grid lg:grid-cols-2">
@@ -16,16 +18,16 @@ export default function Hero() {
         </h2>
 
         {/* CTA */}
-        <div className="mt-10 flex max-w-lg">
-        <input
-          type="email"
-          placeholder="Email"
-          className="flex-1 rounded-l-md border border-neutral-700 bg-neutral-800 px-4 py-3 text-sm text-white placeholder:text-neutral-400 shadow-sm focus:border-indigo-500 focus:outline-none"
-        />
-        <button className="rounded-r-md bg-indigo-600 px-6 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500">
-          Get Started
-        </button>
-      </div>
+        <div className="mt-10 flex max-w-md">
+          <SubscribeForm
+            source="hero"
+            placeholder="Email"
+            buttonText="Get Started"
+            formClassName="flex w-full"
+            inputClassName="flex-1 rounded-l-md border border-neutral-700 bg-neutral-800 px-4 py-2.5 text-md text-white placeholder:text-neutral-400 shadow-sm focus:border-indigo-500 focus:outline-none"
+            buttonClassName="rounded-r-md bg-indigo-600 px-5 py-2.5 text-md font-medium text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-70"
+          />
+        </div>
 
         <p className="mt-2 text-xs text-neutral-500">
           No credit card required. Bitcoin & Crypto Accepted

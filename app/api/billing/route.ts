@@ -1,20 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "../../../lib/stripe";
-import { adminAuth, db } from "../../../lib/firebaseAdmin";
-
-export const dynamic = "force-dynamic";
+import { db } from "../../../lib/firebaseAdmin";
+import { getCurrentUserProfile } from "../../../lib/currentUser";
 
 export async function POST(req: NextRequest) {
   try {
-    const authHeader = req.headers.get("authorization");
-
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.split("Bearer ")[1];
-    const decoded = await adminAuth.verifyIdToken(token);
-
+    const user = await getCurrentUserProfile();
     const body = await req.json();
     const { invoiceId } = body;
 
@@ -22,16 +13,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing invoiceId" }, { status: 400 });
     }
 
-    const invoiceRef = db.collection("invoices").doc(invoiceId);
+    const invoiceRef = db.collection("invoices").doc(String(invoiceId));
     const invoiceSnap = await invoiceRef.get();
 
     if (!invoiceSnap.exists) {
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
-    const invoice = invoiceSnap.data();
+    const invoice = invoiceSnap.data()!;
 
-    if (!invoice || invoice.userId !== decoded.uid) {
+    if (invoice.userId !== user.uid) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -39,17 +30,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invoice already paid" }, { status: 400 });
     }
 
-    const stripe = getStripe();
-
+    const stripe = await getStripe();
+    
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      customer_email: invoice.customerEmail,
+      customer_email: invoice.billingEmail || invoice.clientEmail,
       line_items: [
         {
           price_data: {
             currency: invoice.currency || "usd",
             product_data: {
-              name: invoice.description,
+              name: `${invoice.issuerCompanyName || "Invoice"} - ${invoice.invoiceNumber}`,
+              description: invoice.description,
             },
             unit_amount: invoice.amount,
           },
@@ -57,14 +49,12 @@ export async function POST(req: NextRequest) {
         },
       ],
       metadata: {
-        invoiceId,
-        userId: decoded.uid,
+        invoiceId: invoiceSnap.id,
+        userId: user.uid,
+        invoiceNumber: invoice.invoiceNumber || "",
       },
       success_url: `${process.env.NEXT_PUBLIC_URL}/dashboard/billing?success=1`,
       cancel_url: `${process.env.NEXT_PUBLIC_URL}/dashboard/billing?canceled=1`,
-      automatic_tax: {
-        enabled: false,
-      },
     });
 
     await invoiceRef.update({
@@ -73,10 +63,10 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (error) {
-    console.error("Billing session error:", error);
+  } catch (error: any) {
+    console.error("Billing route error:", error);
     return NextResponse.json(
-      { error: "Unable to create checkout session" },
+      { error: error?.message || "Unable to create checkout session" },
       { status: 500 }
     );
   }

@@ -1,20 +1,30 @@
 "use client";
 
-import { CreditCard, ExternalLink } from "lucide-react";
+import { CreditCard, Download } from "lucide-react";
 
 type Invoice = {
   id: string;
   description: string;
-  amount: string;
+  amount: number;
+  currency: string;
   dueDate: string;
-  status: "paid" | "open" | "past_due";
+  status: "paid" | "open" | "past_due" | "void";
+  invoiceNumber?: string;
 };
 
 const statusStyles: Record<Invoice["status"], string> = {
   paid: "border-emerald-400/20 bg-emerald-500/10 text-emerald-300",
   open: "border-violet-400/20 bg-violet-500/10 text-violet-300",
   past_due: "border-rose-400/20 bg-rose-500/10 text-rose-300",
+  void: "border-white/10 bg-white/[0.06] text-white/60",
 };
+
+function formatMoney(amount: number, currency = "usd") {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+  }).format((amount || 0) / 100);
+}
 
 export default function InvoiceList({
   invoices,
@@ -60,16 +70,31 @@ export default function InvoiceList({
                     {invoice.status.replaceAll("_", " ")}
                   </span>
                 </div>
-                <p className="mt-2 text-sm text-white/50">Due: {invoice.dueDate}</p>
+                <p className="mt-2 text-sm text-white/50">
+                  {invoice.invoiceNumber ? `${invoice.invoiceNumber} - ` : ""}
+                  Due: {invoice.dueDate}
+                </p>
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <a
+                  href={`/api/invoices/${invoice.id}/pdf`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-5 text-sm font-medium text-white/75 transition hover:border-violet-400/40 hover:text-white"
+                >
+                  PDF
+                  <Download className="h-4 w-4" />
+                </a>
+
                 <div className="text-right">
-                  <p className="text-lg font-semibold text-white">{invoice.amount}</p>
+                  <p className="text-lg font-semibold text-white">
+                    {formatMoney(invoice.amount, invoice.currency)}
+                  </p>
                   <p className="text-xs text-white/45">USD</p>
                 </div>
 
-                {invoice.status !== "paid" ? (
+                {invoice.status !== "paid" && invoice.status !== "void" ? (
                   <button
                     onClick={() => onPay?.(invoice.id)}
                     className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-medium text-white transition hover:bg-violet-500"
@@ -78,21 +103,14 @@ export default function InvoiceList({
                     <CreditCard className="h-4 w-4" />
                   </button>
                 ) : (
-                  <span className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-5 text-sm font-medium text-white/60">
-                    Paid
-                    <ExternalLink className="h-4 w-4" />
+                  <span className="inline-flex h-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] px-5 text-sm font-medium text-white/60">
+                    {invoice.status === "paid" ? "Paid" : "Void"}
                   </span>
                 )}
               </div>
             </div>
           ))
         )}
-      </div>
-
-      <div className="mt-6 rounded-2xl border border-violet-500/20 bg-violet-500/[0.08] p-4 text-sm leading-7 text-white/70">
-        Payment methods shown at checkout may include credit and debit cards, Apple Pay,
-        Google Pay, Cash App Pay, Venmo, PayPal, and other available wallet or regional
-        methods depending on account configuration and device support.
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
-// components/Footer.tsx
-import { Github, Linkedin, Mail, Send } from "lucide-react";
+import { Github, Linkedin, Mail } from "lucide-react";
+import SubscribeForm from "../../components/homepage/SubscribeForm";
 
 const footerLinks = [
   ["Services", "#services"],
@@ -70,24 +70,18 @@ export default function Footer() {
               Subscribe for product updates, hosting announcements, and platform news.
             </p>
 
-            <form className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <label htmlFor="footer-email" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="footer-email"
-                type="email"
+            <div className="mt-6">
+              <SubscribeForm
+                source="footer"
+                inputId="footer-email"
                 placeholder="Enter your email"
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-violet-400/50"
+                buttonText="Subscribe"
+                showIcon
+                formClassName="flex flex-col gap-3 sm:flex-row"
+                inputClassName="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-violet-400/50"
+                buttonClassName="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-medium text-white transition hover:bg-violet-500 disabled:opacity-70"
               />
-              <button
-                type="submit"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-medium text-white transition hover:bg-violet-500"
-              >
-                Subscribe
-                <Send className="h-4 w-4" />
-              </button>
-            </form>
+            </div>
 
             <div className="mt-6 flex items-center gap-3">
               <a
