@@ -1,22 +1,64 @@
 /* app/globals.css */
 @import "tailwindcss";
 
-/* Theme tokens */
-/* app/globals.css */
+/* Existing site-wide theme tokens. */
 :root {
   --bg: 255 255 255;
   --fg: 17 24 39;
-  --brand: 24 24 27;       /* dark gray */
-  --brand-fg: 255 255 255; /* white text */
+  --brand: 24 24 27;
+  --brand-fg: 255 255 255;
+
+  /* New semantic portal colors for gradual migration. */
+  --portal-canvas: #f7f8fc;
+  --portal-surface: #ffffff;
+  --portal-surface-raised: #f3f4f8;
+  --portal-surface-hover: #edeef6;
+  --portal-foreground: #181727;
+  --portal-muted: #646477;
+  --portal-subtle: #6b6b7e;
+  --portal-outline: #dedee8;
+  --portal-accent: #6d28d9;
+  --portal-accent-hover: #5b21b6;
+  --portal-accent-soft: #f1eaff;
+  --portal-accent-foreground: #ffffff;
 }
 
 .dark {
   --bg: 12 12 12;
   --fg: 243 244 246;
-  --brand: 249 250 251;       /* light gray */
-  --brand-fg: 24 24 27;       /* dark text */
+  --brand: 249 250 251;
+  --brand-fg: 24 24 27;
+
+  /* Match the existing dark portal; no visual changes until tokens are used. */
+  --portal-canvas: #08080e;
+  --portal-surface: #111118;
+  --portal-surface-raised: #191823;
+  --portal-surface-hover: #222031;
+  --portal-foreground: #ffffff;
+  --portal-muted: #b7b5c5;
+  --portal-subtle: #898697;
+  --portal-outline: #302d3c;
+  --portal-accent: #7c3aed;
+  --portal-accent-hover: #8b5cf6;
+  --portal-accent-soft: #211832;
+  --portal-accent-foreground: #ffffff;
 }
 
+/* Tailwind v4 generates utilities such as bg-portal-canvas and text-portal-muted. */
+@theme inline {
+  --color-portal-canvas: var(--portal-canvas);
+  --color-portal-surface: var(--portal-surface);
+  --color-portal-surface-raised: var(--portal-surface-raised);
+  --color-portal-surface-hover: var(--portal-surface-hover);
+  --color-portal-foreground: var(--portal-foreground);
+  --color-portal-muted: var(--portal-muted);
+  --color-portal-subtle: var(--portal-subtle);
+  --color-portal-outline: var(--portal-outline);
+  --color-portal-accent: var(--portal-accent);
+  --color-portal-accent-hover: var(--portal-accent-hover);
+  --color-portal-accent-soft: var(--portal-accent-soft);
+  --color-portal-accent-foreground: var(--portal-accent-foreground);
+}
 
 html, body, :root { height: 100%; }
 
@@ -25,7 +67,7 @@ body {
   color: rgb(var(--fg));
 }
 
-/* Container helper */
+/* Existing site helpers preserved. */
 .container-pad {
   margin-left: auto; margin-right: auto;
   max-width: 92rem;
@@ -39,43 +81,118 @@ body {
   align-items: center;
   gap: 0.75rem;
 }
-
 .social-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 32px;
-  color: rgb(var(--brand)); 
+  color: rgb(var(--brand));
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.08);
   transition: background 0.15s ease, transform 0.15s ease;
 }
-
 .social-link:hover {
   background: rgba(255, 255, 255, 0.18);
   transform: translateY(-1px);
 }
-
 .social-icon {
   width: 20px;
   height: 20px;
   stroke-width: 1.8;
 }
-
 /* Light mode optional */
 @media (prefers-color-scheme: light) {
-  .social-link {
-    background: rgba(0, 0, 0, 0.06);
-  }
-  .social-link:hover {
-    background: rgba(0, 0, 0, 0.15);
-  }
+  .social-link { background: rgba(0, 0, 0, 0.06); }
+  .social-link:hover { background: rgba(0, 0, 0, 0.15); }
+}
+@media (prefers-color-scheme: dark) {
+  select option { color: #000 !important; }
 }
 
+/*
+ * Light appearance compatibility for the existing client portal components.
+ * This is scoped to .portal-theme so public pages and auth remain unchanged.
+ * The portal uses semantic tokens above; gradually replace legacy dark-only
+ * Tailwind classes in individual components with token utilities.
+ */
+.light .portal-theme { color-scheme: light; }
 
-@media (prefers-color-scheme: dark) {
-  select option {
-    color: #000 !important; /* force black text in dark mode */
-  }
+/* Legacy white text becomes readable on the light canvas. */
+.light .portal-theme [class~="text-white"] { color: var(--portal-foreground); }
+.light .portal-theme :is(
+  [class~="text-white/85"], [class~="text-white/80"],
+  [class~="text-white/75"], [class~="text-white/70"],
+  [class~="text-white/65"], [class~="text-white/60"],
+  [class~="text-white/55"], [class~="text-white/50"]
+) { color: var(--portal-muted); }
+.light .portal-theme :is(
+  [class~="text-white/45"], [class~="text-white/40"],
+  [class~="text-white/35"], [class~="text-white/30"],
+  [class~="text-white/25"]
+) { color: var(--portal-subtle); }
+
+/* White translucent cards and dividers used throughout the legacy dark UI. */
+.light .portal-theme :is(
+  [class~="bg-white/[0.02]"], [class~="bg-white/[0.025]"],
+  [class~="bg-white/[0.03]"], [class~="bg-white/[0.035]"],
+  [class~="bg-white/[0.04]"], [class~="bg-white/[0.045]"],
+  [class~="bg-white/[0.06]"], [class~="bg-white/5"],
+  [class~="bg-black/20"]
+) { background-color: var(--portal-surface); }
+.light .portal-theme :is(
+  [class~="border-white/10"], [class~="border-white/15"],
+  [class~="border-white/20"], [class~="border-white/25"]
+) { border-color: var(--portal-outline); }
+.light .portal-theme [class~="divide-white/10"] > :not(:last-child) {
+  border-color: var(--portal-outline);
+}
+.light .portal-theme :is(
+  [class~="hover:bg-white/[0.04]"], [class~="hover:bg-white/[0.045]"]
+):hover { background-color: var(--portal-surface-hover); }
+.light .portal-theme [class~="hover:text-white"]:hover { color: var(--portal-foreground); }
+
+/* The original dashboard hero uses a hardcoded dark gradient. */
+.light .portal-theme [class~="from-[#191525]"] {
+  background-image: linear-gradient(135deg, #f2ecff, #faf9ff, #ffffff);
+}
+
+/* Keep violet branding legible without washing it out on white surfaces. */
+.light .portal-theme :is(
+  [class~="text-violet-100"], [class~="text-violet-200"],
+  [class~="text-violet-300"], [class~="text-violet-400"]
+) { color: var(--portal-accent); }
+.light .portal-theme [class~="hover:text-violet-200"]:hover,
+.light .portal-theme [class~="group-hover:text-violet-200"]:is(:hover, :focus-within) {
+  color: var(--portal-accent-hover);
+}
+
+/* Priority and status pills retain distinct, accessible colors. */
+.light .portal-theme [class~="text-rose-300"],
+.light .portal-theme [class~="text-rose-200"] { color: #be123c; }
+.light .portal-theme [class~="text-orange-300"] { color: #9a3412; }
+.light .portal-theme [class~="text-sky-300"],
+.light .portal-theme [class~="text-sky-200"] { color: #0369a1; }
+.light .portal-theme [class~="text-slate-300"] { color: #475569; }
+.light .portal-theme [class~="text-amber-300"],
+.light .portal-theme [class~="text-amber-200"] { color: #92400e; }
+.light .portal-theme [class~="text-emerald-300"],
+.light .portal-theme [class~="text-emerald-200"] { color: #047857; }
+
+/* Primary-action buttons stay white-on-purple in both themes. */
+.light .portal-theme :is(
+  button[class~="bg-violet-600"], a[class~="bg-violet-600"],
+  button[class~="bg-violet-500"], a[class~="bg-violet-500"]
+)[class~="text-white"] { color: #ffffff; }
+
+.light .portal-theme :is(input, textarea, select) {
+  color: var(--portal-foreground);
+  border-color: var(--portal-outline);
+  background-color: var(--portal-surface-raised);
+}
+.light .portal-theme :is(input, textarea)::placeholder { color: var(--portal-subtle); }
+.light .portal-theme select option { background: #ffffff !important; color: #181727 !important; }
+.light .portal-theme :is(input, select, textarea):disabled {
+  background-color: var(--portal-canvas);
+  color: var(--portal-subtle);
 }

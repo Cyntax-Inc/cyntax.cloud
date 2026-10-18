@@ -18,12 +18,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   return (
     <PortalAccessProvider readOnly={readOnly}>
-      <main className="min-h-screen bg-[#08080e] text-white">
+      <main className="portal-theme min-h-screen bg-portal-canvas text-portal-foreground">
         <SessionWatcher />
         <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-9">
-          <div className="grid gap-6 lg:grid-cols-[248px_minmax(0,1fr)] lg:gap-8">
+          <div className="grid gap-6 lg:grid-cols-[224px_minmax(0,1fr)] lg:gap-8">
             <DashboardNav readOnly={readOnly} />
-            <section className="min-w-0 pb-12">{children}</section>
+            <section className="min-w-0">{children}</section>
           </div>
         </div>
       </main>
