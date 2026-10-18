@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Building2, Pencil, Save, User, X } from "lucide-react";
+import { Pencil, Save, X } from "lucide-react";
 import { usePortalAccess } from "../../../components/dashboard/PortalAccessProvider";
+import ThemeSwitcher from "../../../components/dashboard/ThemeSwitcher";
+import PasswordSettings from "../../../components/dashboard/PasswordSettings";
 
 type ProfileForm = {
   displayName: string;
@@ -20,6 +22,14 @@ type ProfileForm = {
   country: string;
   timezone: string;
   role: string;
+};
+
+type ProfileField = {
+  key: keyof ProfileForm;
+  label: string;
+  placeholder?: string;
+  disabled?: boolean;
+  wide?: boolean;
 };
 
 const emptyForm: ProfileForm = {
@@ -40,17 +50,71 @@ const emptyForm: ProfileForm = {
   role: "",
 };
 
-function DetailRow({
-  label,
-  value,
+const personalFields: ProfileField[] = [
+  { key: "displayName", label: "Full name", placeholder: "Full name" },
+  { key: "email", label: "Email address", disabled: true },
+  { key: "phone", label: "Phone", placeholder: "Phone" },
+  { key: "title", label: "Job title", placeholder: "Job title" },
+  { key: "role", label: "Account role", disabled: true },
+];
+
+const companyFields: ProfileField[] = [
+  { key: "companyName", label: "Company name", placeholder: "Company name", wide: true },
+  { key: "billingEmail", label: "Billing email", placeholder: "Billing email" },
+  { key: "website", label: "Website", placeholder: "Website" },
+  { key: "addressLine1", label: "Address line 1", placeholder: "Address line 1", wide: true },
+  { key: "addressLine2", label: "Address line 2", placeholder: "Address line 2", wide: true },
+  { key: "city", label: "City", placeholder: "City" },
+  { key: "state", label: "State", placeholder: "State" },
+  { key: "postalCode", label: "Postal code", placeholder: "Postal code" },
+  { key: "country", label: "Country", placeholder: "Country" },
+  { key: "timezone", label: "Timezone", placeholder: "Timezone", wide: true },
+];
+
+function ProfileDetails({ fields, form }: { fields: ProfileField[]; form: ProfileForm }) {
+  return (
+    <dl className="space-y-3.5">
+      {fields.map(({ key, label }) => (
+        <div key={key} className="grid min-w-0 grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] gap-3 sm:grid-cols-[9rem_minmax(0,1fr)]">
+          <dt className="text-xs leading-5 text-portal-muted">{label}</dt>
+          <dd className="min-w-0 break-words text-sm leading-5 text-portal-foreground">
+            {form[key]?.trim() || "—"}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function ProfileEditor({
+  prefix,
+  fields,
+  form,
+  onUpdate,
 }: {
-  label: string;
-  value?: string | null;
+  prefix: string;
+  fields: ProfileField[];
+  form: ProfileForm;
+  onUpdate: (key: keyof ProfileForm, value: string) => void;
 }) {
   return (
-    <div className="grid gap-1 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-4">
-      <p className="text-sm font-medium text-white/45">{label}</p>
-      <p className="text-sm text-white">{value?.trim() ? value : "—"}</p>
+    <div className="grid min-w-0 gap-x-4 gap-y-4 sm:grid-cols-2">
+      {fields.map(({ key, label, placeholder, disabled, wide }) => (
+        <div key={key} className={`min-w-0 ${wide ? "sm:col-span-2" : ""}`}>
+          <label htmlFor={`${prefix}-${key}`} className="mb-1.5 block text-xs font-medium text-portal-muted">
+            {label}
+          </label>
+          <input
+            id={`${prefix}-${key}`}
+            type="text"
+            value={form[key]}
+            onChange={(event) => onUpdate(key, event.target.value)}
+            disabled={disabled}
+            placeholder={placeholder || label}
+            className="h-11 w-full min-w-0 rounded-lg border border-portal-outline bg-portal-surface-raised px-3 text-sm text-portal-foreground outline-none transition placeholder:text-portal-subtle focus-visible:border-violet-500 focus-visible:ring-2 focus-visible:ring-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+          />
+        </div>
+      ))}
     </div>
   );
 }
@@ -71,43 +135,28 @@ export default function ProfileSettingsPage() {
       try {
         setLoading(true);
         setError("");
-
-        const res = await fetch("/api/settings/profile", {
-          cache: "no-store",
-        });
-
+        const res = await fetch("/api/settings/profile", { cache: "no-store" });
         const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || "Failed to load profile");
-        }
-
-        const nextForm: ProfileForm = {
-          ...emptyForm,
-          ...data.profile,
-        };
-
+        if (!res.ok) throw new Error(data.error || "Failed to load profile");
+        const nextForm: ProfileForm = { ...emptyForm, ...data.profile };
         setForm(nextForm);
         setOriginalForm(nextForm);
-      } catch (err: any) {
-        setError(err.message || "Unable to load profile");
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Unable to load profile");
       } finally {
         setLoading(false);
       }
     }
-
     loadProfile();
   }, []);
 
-  const hasChanges = useMemo(() => {
-    return JSON.stringify(form) !== JSON.stringify(originalForm);
-  }, [form, originalForm]);
+  const hasChanges = useMemo(
+    () => JSON.stringify(form) !== JSON.stringify(originalForm),
+    [form, originalForm]
+  );
 
-  function updateField<K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) {
-    setForm((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+  function updateField(key: keyof ProfileForm, value: string) {
+    setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   function cancelUserEdit() {
@@ -146,13 +195,10 @@ export default function ProfileSettingsPage() {
     setSaving(true);
     setMessage("");
     setError("");
-
     try {
       const res = await fetch("/api/settings/profile", {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           displayName: form.displayName,
           phone: form.phone,
@@ -169,370 +215,125 @@ export default function ProfileSettingsPage() {
           timezone: form.timezone,
         }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to save profile");
-      }
-
+      if (!res.ok) throw new Error(data.error || "Failed to save profile");
       setOriginalForm(form);
       setEditingUser(false);
       setEditingCompany(false);
       setMessage("Settings updated successfully.");
-    } catch (err: any) {
-      setError(err.message || "Unable to update profile");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Unable to update profile");
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) {
-    return (
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-white/60">
-        Loading settings...
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 md:p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-400">
-          Settings
+    <div className="min-w-0 max-w-5xl space-y-8 pb-10">
+      <header>
+        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-portal-accent">Account</p>
+        <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-portal-foreground">Settings</h1>
+        <p className="mt-1.5 text-sm text-portal-muted">Manage your account and preferences.</p>
+      </header>
+
+      {readOnly && (
+        <p role="status" className="rounded-md bg-portal-accent-soft px-4 py-3 text-sm text-portal-foreground">
+          This account has view-only access. Profile changes are managed outside the client portal.
         </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-          Profile & Company
-        </h1>
-        <p className="mt-3 text-sm leading-7 text-white/60">
-          Review your contact details, company information, and billing profile.
-        </p>
-      </div>
-
-      {readOnly && <div className="rounded-xl border border-violet-400/20 bg-violet-400/5 px-5 py-3 text-sm text-violet-200">This account has view-only access. Profile changes are managed outside the client portal.</div>}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 md:p-8">
-        <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/10">
-              <User className="h-5 w-5 text-violet-400" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-white">User Details</h2>
-              <p className="text-sm text-white/45">
-                Your personal profile and contact information
-              </p>
-            </div>
-          </div>
-
-          {!editingUser && !readOnly ? (
-            <button
-              type="button"
-              onClick={() => {
-                setEditingUser(true);
-                setMessage("");
-                setError("");
-              }}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-white/80 transition hover:border-violet-400/40 hover:text-white"
-            >
-              <Pencil className="h-4 w-4" />
-              Edit
-            </button>
-          ) : editingUser ? (
-            <button
-              type="button"
-              onClick={cancelUserEdit}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-white/80 transition hover:border-white/20 hover:text-white"
-            >
-              <X className="h-4 w-4" />
-              Cancel
-            </button>
-          ) : null}
-        </div>
-
-        {!editingUser ? (
-          <div className="mt-6 space-y-4">
-            <DetailRow label="Full Name" value={form.displayName} />
-            <DetailRow label="Email" value={form.email} />
-            <DetailRow label="Phone" value={form.phone} />
-            <DetailRow label="Job Title" value={form.title} />
-            <DetailRow label="Role" value={form.role} />
-          </div>
-        ) : (
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-white/80">
-                Full Name
-              </label>
-              <input
-                value={form.displayName}
-                onChange={(e) => updateField("displayName", e.target.value)}
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition focus:border-violet-400/50"
-                placeholder="Full name"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-white/80">
-                Email
-              </label>
-              <input
-                value={form.email}
-                disabled
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.02] px-4 text-sm text-white/50"
-                placeholder="Email"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-white/80">
-                Phone
-              </label>
-              <input
-                value={form.phone}
-                onChange={(e) => updateField("phone", e.target.value)}
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition focus:border-violet-400/50"
-                placeholder="Phone"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-white/80">
-                Job Title
-              </label>
-              <input
-                value={form.title}
-                onChange={(e) => updateField("title", e.target.value)}
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition focus:border-violet-400/50"
-                placeholder="Job title"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-white/80">
-                Role
-              </label>
-              <input
-                value={form.role}
-                disabled
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.02] px-4 text-sm text-white/50"
-                placeholder="Role"
-              />
-            </div>
-          </div>
-        )}
-      </section>
-
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 md:p-8">
-        <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/10">
-              <Building2 className="h-5 w-5 text-violet-400" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-white">Company Details</h2>
-              <p className="text-sm text-white/45">
-                Billing and business information for your account
-              </p>
-            </div>
-          </div>
-
-          {!editingCompany && !readOnly ? (
-            <button
-              type="button"
-              onClick={() => {
-                setEditingCompany(true);
-                setMessage("");
-                setError("");
-              }}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-white/80 transition hover:border-violet-400/40 hover:text-white"
-            >
-              <Pencil className="h-4 w-4" />
-              Edit
-            </button>
-          ) : editingCompany ? (
-            <button
-              type="button"
-              onClick={cancelCompanyEdit}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-white/80 transition hover:border-white/20 hover:text-white"
-            >
-              <X className="h-4 w-4" />
-              Cancel
-            </button>
-          ) : null}
-        </div>
-
-        {!editingCompany ? (
-          <div className="mt-6 space-y-4">
-            <DetailRow label="Company Name" value={form.companyName} />
-            <DetailRow label="Billing Email" value={form.billingEmail} />
-            <DetailRow label="Website" value={form.website} />
-            <DetailRow label="Address Line 1" value={form.addressLine1} />
-            <DetailRow label="Address Line 2" value={form.addressLine2} />
-            <DetailRow label="City" value={form.city} />
-            <DetailRow label="State" value={form.state} />
-            <DetailRow label="Postal Code" value={form.postalCode} />
-            <DetailRow label="Country" value={form.country} />
-            <DetailRow label="Timezone" value={form.timezone} />
-          </div>
-        ) : (
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-white/80">
-                Company Name
-              </label>
-              <input
-                value={form.companyName}
-                onChange={(e) => updateField("companyName", e.target.value)}
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition focus:border-violet-400/50"
-                placeholder="Company name"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-white/80">
-                Billing Email
-              </label>
-              <input
-                value={form.billingEmail}
-                onChange={(e) => updateField("billingEmail", e.target.value)}
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition focus:border-violet-400/50"
-                placeholder="Billing email"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-white/80">
-                Website
-              </label>
-              <input
-                value={form.website}
-                onChange={(e) => updateField("website", e.target.value)}
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition focus:border-violet-400/50"
-                placeholder="Website"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-white/80">
-                Address Line 1
-              </label>
-              <input
-                value={form.addressLine1}
-                onChange={(e) => updateField("addressLine1", e.target.value)}
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition focus:border-violet-400/50"
-                placeholder="Address line 1"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-white/80">
-                Address Line 2
-              </label>
-              <input
-                value={form.addressLine2}
-                onChange={(e) => updateField("addressLine2", e.target.value)}
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition focus:border-violet-400/50"
-                placeholder="Address line 2"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-white/80">
-                City
-              </label>
-              <input
-                value={form.city}
-                onChange={(e) => updateField("city", e.target.value)}
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition focus:border-violet-400/50"
-                placeholder="City"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-white/80">
-                State
-              </label>
-              <input
-                value={form.state}
-                onChange={(e) => updateField("state", e.target.value)}
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition focus:border-violet-400/50"
-                placeholder="State"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-white/80">
-                Postal Code
-              </label>
-              <input
-                value={form.postalCode}
-                onChange={(e) => updateField("postalCode", e.target.value)}
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition focus:border-violet-400/50"
-                placeholder="Postal code"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-white/80">
-                Country
-              </label>
-              <input
-                value={form.country}
-                onChange={(e) => updateField("country", e.target.value)}
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition focus:border-violet-400/50"
-                placeholder="Country"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-white/80">
-                Timezone
-              </label>
-              <input
-                value={form.timezone}
-                onChange={(e) => updateField("timezone", e.target.value)}
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition focus:border-violet-400/50"
-                placeholder="Timezone"
-              />
-            </div>
-          </div>
-        )}
-      </section>
-
-      {!readOnly && (editingUser || editingCompany) && (
-        <div className="rounded-2xl border border-violet-500/20 bg-violet-500/[0.08] p-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-medium text-white">Unsaved changes</p>
-              <p className="text-sm text-white/60">
-                Save your updates when you are finished editing.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={saveAll}
-              disabled={saving || !hasChanges}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-medium text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Save className="h-4 w-4" />
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
-        </div>
       )}
+      {error && <p role="alert" className="rounded-md bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-300">{error}</p>}
+      {message && <p role="status" className="rounded-md bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">{message}</p>}
 
-      {message ? (
-        <div className="rounded-xl border border-violet-400/20 bg-violet-500/10 px-4 py-3 text-sm text-violet-300">
-          {message}
-        </div>
-      ) : null}
+      {loading ? (
+        <div role="status" className="py-8 text-sm text-portal-muted">Loading settings...</div>
+      ) : (
+        <>
+          {/* DOM order is intentional: Personal, Company, Security, Appearance on all screens. */}
+          <div className="grid min-w-0 gap-x-12 gap-y-10 lg:grid-cols-2">
+            <section aria-labelledby="personal-title" className="min-w-0">
+              <div className="mb-5 flex items-start justify-between gap-3">
+                <div>
+                  <h2 id="personal-title" className="text-base font-semibold text-portal-foreground">Personal information</h2>
+                  <p className="mt-1 text-xs leading-5 text-portal-muted">Your profile and contact details.</p>
+                </div>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => {
+                      if (editingUser) cancelUserEdit();
+                      else { setEditingUser(true); setMessage(""); setError(""); }
+                    }}
+                    className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md border border-portal-outline px-3 text-xs font-medium text-portal-foreground transition hover:bg-portal-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:opacity-50"
+                  >
+                    {editingUser ? <X className="h-3.5 w-3.5" aria-hidden="true" /> : <Pencil className="h-3.5 w-3.5" aria-hidden="true" />}
+                    {editingUser ? "Cancel" : "Edit"}
+                  </button>
+                )}
+              </div>
+              {editingUser ? (
+                <ProfileEditor prefix="personal" fields={personalFields} form={form} onUpdate={updateField} />
+              ) : (
+                <ProfileDetails fields={personalFields} form={form} />
+              )}
+            </section>
 
-      {error ? (
-        <div className="rounded-xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
-          {error}
-        </div>
-      ) : null}
+            <section aria-labelledby="company-title" className="min-w-0">
+              <div className="mb-5 flex items-start justify-between gap-3">
+                <div>
+                  <h2 id="company-title" className="text-base font-semibold text-portal-foreground">Company information</h2>
+                  <p className="mt-1 text-xs leading-5 text-portal-muted">Business and billing contact details.</p>
+                </div>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => {
+                      if (editingCompany) cancelCompanyEdit();
+                      else { setEditingCompany(true); setMessage(""); setError(""); }
+                    }}
+                    className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md border border-portal-outline px-3 text-xs font-medium text-portal-foreground transition hover:bg-portal-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:opacity-50"
+                  >
+                    {editingCompany ? <X className="h-3.5 w-3.5" aria-hidden="true" /> : <Pencil className="h-3.5 w-3.5" aria-hidden="true" />}
+                    {editingCompany ? "Cancel" : "Edit"}
+                  </button>
+                )}
+              </div>
+              {editingCompany ? (
+                <ProfileEditor prefix="company" fields={companyFields} form={form} onUpdate={updateField} />
+              ) : (
+                <ProfileDetails fields={companyFields} form={form} />
+              )}
+            </section>
+
+            <PasswordSettings />
+
+            <section aria-labelledby="appearance-title" className="min-w-0">
+              <h2 id="appearance-title" className="text-base font-semibold text-portal-foreground">Appearance</h2>
+              <p className="mb-4 mt-1 text-xs leading-5 text-portal-muted">Choose Light, Dark, or follow your device.</p>
+              <ThemeSwitcher />
+            </section>
+          </div>
+
+          {!readOnly && (editingUser || editingCompany) && (
+            <div className="flex flex-col gap-3 border-t border-portal-outline pt-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-portal-foreground">{hasChanges ? "Unsaved changes" : "Editing account details"}</p>
+                <p className="mt-0.5 text-xs text-portal-muted">Save your updates when you're finished editing.</p>
+              </div>
+              <button
+                type="button"
+                onClick={saveAll}
+                disabled={saving || !hasChanges}
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 text-sm font-medium text-white transition hover:bg-violet-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Save className="h-4 w-4" aria-hidden="true" />
+                {saving ? "Saving..." : "Save changes"}
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
