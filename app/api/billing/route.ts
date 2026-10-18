@@ -1,0 +1,78 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getStripe } from "../../../lib/stripe";
+import { db } from "../../../lib/firebaseAdmin";
+import { getCurrentUserProfile } from "../../../lib/currentUser";
+import { canWriteInPortal, ownsPortalResource } from "../../../lib/portalAccess";
+import { portalApiError } from "../../../lib/apiErrors";
+
+export async function POST(req: NextRequest) {
+  try {
+    const user = await getCurrentUserProfile();
+    if (!canWriteInPortal(user.role)) {
+      return NextResponse.json({ error: "This account has read-only portal access" }, { status: 403 });
+    }
+    const body = await req.json();
+    const { invoiceId } = body;
+
+    if (!invoiceId) {
+      return NextResponse.json({ error: "Missing invoiceId" }, { status: 400 });
+    }
+
+    const invoiceRef = db.collection("invoices").doc(String(invoiceId));
+    const invoiceSnap = await invoiceRef.get();
+
+    if (!invoiceSnap.exists) {
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    }
+
+    const invoice = invoiceSnap.data()!;
+
+    if (!ownsPortalResource(user.uid, invoice.userId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (invoice.status === "void") {
+      return NextResponse.json({ error: "Void invoices cannot be paid" }, { status: 409 });
+    }
+
+    if (invoice.status === "paid") {
+      return NextResponse.json({ error: "Invoice already paid" }, { status: 400 });
+    }
+
+    const stripe = await getStripe();
+    
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      customer_email: invoice.billingEmail || invoice.clientEmail,
+      line_items: [
+        {
+          price_data: {
+            currency: invoice.currency || "usd",
+            product_data: {
+              name: `${invoice.issuerCompanyName || "Invoice"} - ${invoice.invoiceNumber}`,
+              description: invoice.description,
+            },
+            unit_amount: invoice.amount,
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        invoiceId: invoiceSnap.id,
+        userId: user.uid,
+        invoiceNumber: invoice.invoiceNumber || "",
+      },
+      success_url: `${process.env.NEXT_PUBLIC_URL}/dashboard/billing?success=1`,
+      cancel_url: `${process.env.NEXT_PUBLIC_URL}/dashboard/billing?canceled=1`,
+    });
+
+    await invoiceRef.update({
+      stripeSessionId: session.id,
+      updatedAt: Date.now(),
+    });
+
+    return NextResponse.json({ url: session.url });
+  } catch (error: any) {
+    return portalApiError(error, "Unable to create checkout session");
+  }
+}
