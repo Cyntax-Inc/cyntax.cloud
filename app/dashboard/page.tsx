@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowRight, CircleAlert, Clock3, CreditCard, LifeBuoy,
+  AlertTriangle, ArrowRight, CircleAlert, Clock3, CreditCard, LifeBuoy,
   Plus, RefreshCw, TicketCheck, TicketPlus,
 } from "lucide-react";
 import { usePortalAccess } from "../../components/dashboard/PortalAccessProvider";
@@ -14,6 +14,33 @@ import {
 
 type Invoice = { id: string; amount: number; currency: string; status: string };
 
+const priorityStyles: Record<string, string> = {
+  urgent: "border-rose-500/50 bg-rose-500/15 text-rose-300",
+  high: "border-orange-400/40 bg-orange-400/10 text-orange-300",
+  normal: "border-sky-400/35 bg-sky-400/10 text-sky-300",
+  low: "border-slate-400/30 bg-slate-400/10 text-slate-300",
+};
+
+function PriorityBadge({ priority, status }: { priority?: string; status: TicketSummary["status"] }) {
+  const label = priority?.trim() || "Normal";
+  const level = label.toLowerCase();
+  const closed = status === "closed";
+  const style = closed
+    ? "border-white/10 bg-white/[0.025] text-white/35"
+    : priorityStyles[level] || priorityStyles.normal;
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${style}`}>
+      {level === "urgent" && !closed ? (
+        <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      ) : (
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" />
+      )}
+      {label}
+    </span>
+  );
+}
+
 export default function DashboardPage() {
   const { readOnly } = usePortalAccess();
   const [tickets, setTickets] = useState<TicketSummary[]>([]);
@@ -21,7 +48,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [refresh, setRefresh] = useState(0);
-
   useEffect(() => {
     const controller = new AbortController();
     async function load() {
@@ -49,7 +75,6 @@ export default function DashboardPage() {
     void load();
     return () => controller.abort();
   }, [refresh]);
-
   const activeTickets = useMemo(() => tickets.filter(isActiveTicket).sort(sortTickets), [tickets]);
   const summary = useMemo(() => ({
     total: activeTickets.length,
@@ -67,14 +92,12 @@ export default function DashboardPage() {
     ? Object.entries(balances).map(([currency, amount]) =>
         new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount / 100)).join(" / ")
     : "$0.00";
-
   const stats = [
     { label: "Active tickets", count: summary.total, hint: "Open, in progress, or awaiting a reply", icon: LifeBuoy },
     { label: "Awaiting your reply", count: summary.awaiting, hint: "Requests that need your attention", icon: CircleAlert },
     { label: "In progress", count: summary.inProgress, hint: "Currently being worked on", icon: Clock3 },
     { label: "Open invoices", count: outstandingInvoices.length, hint: balanceSummary + " outstanding", icon: CreditCard },
   ];
-
   return (
     <div className="space-y-7">
       <header className="relative overflow-hidden rounded-3xl border border-violet-400/15 bg-gradient-to-br from-[#191525] via-[#10101b] to-[#0b0b11] p-6 sm:p-9">
@@ -89,9 +112,7 @@ export default function DashboardPage() {
           {!readOnly && <Link href="/dashboard/tickets/new" className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-semibold text-white transition hover:bg-violet-500"><Plus className="h-4 w-4" />New support ticket</Link>}
         </div>
       </header>
-
       {error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200"><span>{error}</span><button type="button" onClick={() => setRefresh((n) => n + 1)} className="inline-flex items-center gap-2 font-medium underline"><RefreshCw className="h-4 w-4" />Retry</button></div>}
-
       <section aria-label="Account snapshot" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map(({ label, count, hint, icon: Icon }) => (
           <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5">
@@ -101,7 +122,6 @@ export default function DashboardPage() {
           </div>
         ))}
       </section>
-
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,0.8fr)]">
         <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035]">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-5 sm:px-7">
@@ -114,11 +134,10 @@ export default function DashboardPage() {
             : <div className="divide-y divide-white/10">{activeTickets.slice(0, 6).map((ticket) => (
                 <Link key={ticket.id} href={`/dashboard/tickets/${encodeURIComponent(ticket.id)}`} className="group flex flex-col gap-3 px-5 py-4 transition hover:bg-white/[0.04] sm:flex-row sm:items-center sm:justify-between sm:px-7">
                   <div className="min-w-0"><p className="truncate text-sm font-semibold text-white group-hover:text-violet-200">{ticket.subject}</p><p className="mt-1.5 text-xs text-white/40">{ticket.category || "General support"} <span aria-hidden="true">·</span> Updated {formatTicketDate(ticket.updatedAt || ticket.createdAt)}</p></div>
-                  <div className="flex shrink-0 flex-wrap items-center gap-2"><span className="rounded-full border border-white/10 px-2.5 py-1 text-xs text-white/65">{ticket.priority || "Normal"}</span><span className={`rounded-full border px-2.5 py-1 text-xs ${ticketStatusStyle[ticket.status] || ticketStatusStyle.open}`}>{ticketStatusLabel[ticket.status] || "Open"}</span><ArrowRight className="hidden h-4 w-4 text-white/35 sm:block"/></div>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2"><PriorityBadge priority={ticket.priority} status={ticket.status} /><span className={`rounded-full border px-2.5 py-1 text-xs ${ticketStatusStyle[ticket.status] || ticketStatusStyle.open}`}>{ticketStatusLabel[ticket.status] || "Open"}</span><ArrowRight className="hidden h-4 w-4 text-white/35 sm:block"/></div>
                 </Link>
               ))}</div>}
         </section>
-
         <div className="space-y-5">
           <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
             <div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10"><CreditCard className="h-5 w-5 text-violet-300"/></div><div><h2 className="font-semibold">Billing overview</h2><p className="text-xs text-white/45">Invoices linked to your account</p></div></div>
