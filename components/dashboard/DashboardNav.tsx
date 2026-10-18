@@ -1,48 +1,61 @@
-
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useTheme } from "next-themes";
 import {
   CreditCard,
   LayoutDashboard,
   LifeBuoy,
   Menu,
+  Moon,
   PlusCircle,
   Settings,
+  Sun,
   X,
 } from "lucide-react";
 import clsx from "clsx";
 import LogoutButton from "./LogoutButton";
 
 const links = [
-  {
-    href: "/dashboard",
-    label: "Overview",
-    icon: LayoutDashboard,
-  },
-  {
-    href: "/dashboard/tickets",
-    label: "Tickets",
-    icon: LifeBuoy,
-  },
-  {
-    href: "/dashboard/tickets/new",
-    label: "New Ticket",
-    icon: PlusCircle,
-  },
-  {
-    href: "/dashboard/billing",
-    label: "Billing",
-    icon: CreditCard,
-  },
-  {
-    href: "/dashboard/settings",
-    label: "Settings",
-    icon: Settings,
-  },
+  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard/tickets", label: "Tickets", icon: LifeBuoy },
+  { href: "/dashboard/tickets/new", label: "New Ticket", icon: PlusCircle },
+  { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
+  { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
+
+function ThemeToggleButton() {
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  const isDark = resolvedTheme === "dark";
+  const label = !mounted
+    ? "Change color theme"
+    : isDark
+      ? "Switch to light mode"
+      : "Switch to dark mode";
+
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      disabled={!mounted}
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      className="inline-flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/75 transition hover:border-violet-400/40 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {mounted && !isDark ? (
+        <Moon className="h-4 w-4" aria-hidden="true" />
+      ) : (
+        <Sun className="h-4 w-4" aria-hidden="true" />
+      )}
+    </button>
+  );
+}
 
 function NavLinks({
   readOnly,
@@ -57,10 +70,7 @@ function NavLinks({
     <>
       <nav className="flex flex-col gap-1">
         {links
-          .filter(
-            ({ href }) =>
-              !readOnly || href !== "/dashboard/tickets/new"
-          )
+          .filter(({ href }) => !readOnly || href !== "/dashboard/tickets/new")
           .map(({ href, label, icon: Icon }) => {
             const active =
               pathname === href ||
@@ -100,17 +110,18 @@ function NavLinks({
             View-only account
           </p>
         )}
-        <LogoutButton />
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <LogoutButton />
+          </div>
+          <ThemeToggleButton />
+        </div>
       </div>
     </>
   );
 }
 
-export default function DashboardNav({
-  readOnly,
-}: {
-  readOnly: boolean;
-}) {
+export default function DashboardNav({ readOnly }: { readOnly: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -122,7 +133,6 @@ export default function DashboardNav({
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (!menuRef.current) return;
-
       if (!menuRef.current.contains(event.target as Node)) {
         setOpen(false);
       }
@@ -138,10 +148,7 @@ export default function DashboardNav({
     document.addEventListener("keydown", handleEscape);
 
     return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutside
-      );
+      document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
   }, []);
@@ -154,37 +161,24 @@ export default function DashboardNav({
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/10">
-                <span className="text-sm font-semibold text-violet-400">
-                  CC
-                </span>
+                <span className="text-sm font-semibold text-violet-400">CC</span>
               </div>
-
               <div>
                 <p className="text-sm font-semibold tracking-tight text-white">
                   Client Portal
                 </p>
-                <p className="text-xs text-white/45">
-                  Cyntax Cloud
-                </p>
+                <p className="text-xs text-white/45">Cyntax Cloud</p>
               </div>
             </div>
 
             <button
               type="button"
-              aria-label={
-                open
-                  ? "Close navigation menu"
-                  : "Open navigation menu"
-              }
+              aria-label={open ? "Close navigation menu" : "Open navigation menu"}
               aria-expanded={open}
               onClick={() => setOpen((prev) => !prev)}
               className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/80 transition hover:border-violet-400/40 hover:text-white"
             >
-              {open ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
+              {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
 
@@ -200,30 +194,22 @@ export default function DashboardNav({
         </div>
       </div>
 
-      {/* Desktop sidebar nav */}
+      {/* Desktop sidebar nav: retain the verified fixed-height layout. */}
       <aside className="hidden rounded-xl border border-white/10 bg-white/[0.02] p-4 lg:flex lg:h-[calc(100dvh-4.5rem)] lg:min-h-[28rem] lg:self-start lg:flex-col">
         <div className="mb-5 flex items-center gap-3 border-b border-white/10 pb-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/10">
-            <span className="text-sm font-semibold text-violet-400">
-              CC
-            </span>
+            <span className="text-sm font-semibold text-violet-400">CC</span>
           </div>
-
           <div>
             <p className="text-sm font-semibold tracking-tight text-white">
               Client Portal
             </p>
-            <p className="text-xs text-white/45">
-              Cyntax Cloud
-            </p>
+            <p className="text-xs text-white/45">Cyntax Cloud</p>
           </div>
         </div>
 
         <div className="flex flex-1 flex-col [&>nav]:flex-1">
-          <NavLinks
-            pathname={pathname}
-            readOnly={readOnly}
-          />
+          <NavLinks pathname={pathname} readOnly={readOnly} />
         </div>
       </aside>
     </>
