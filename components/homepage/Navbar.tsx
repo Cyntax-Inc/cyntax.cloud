@@ -1,111 +1,110 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect } from "react";
-import { useTheme } from "next-themes";
-import { ThemeToggle } from "./ThemeToggle";
-import { Linkedin, Github } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { ArrowUpRight, Menu, X } from "lucide-react";
+
+const navigation = [
+  { label: "Solutions", href: "#services" },
+  { label: "AIOps & monitoring", href: "#aiops" },
+  { label: "Our approach", href: "#approach" },
+  { label: "Technology", href: "#tooling" },
+  { label: "Hosting plans", href: "#pricing" },
+];
 
 export default function Navbar() {
-  const [open, setOpen] = useState(false);
-
-  const { resolvedTheme, forcedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
-
-  const logo =
-    forcedTheme === "dark" || resolvedTheme === "dark"
-      ? "/logo/logo_transparent_dark_mode.png"
-      : "/logo_transparent_5.png";
-
-  const nav = (
-    <ul className="flex flex-col gap-4 lg:flex-row lg:items-center">
-      {[
-        ["Services", "#services"],
-        ["Tooling", "#tooling"],
-        ["Pricing", "#pricing"],
-        ["Reviews", "#reviews"],
-      ].map(([label, href]) => (
-        <li key={href}>
-          <Link
-            href={href}
-            className="hover:underline"
-            onClick={() => setOpen(false)}
-          >
-            {label}
-          </Link>
-        </li>
-      ))}
-
-      <li className="lg:ml-4">
-        <div className="flex items-center gap-2">
-
-          {/* LinkedIn */}
-          <a
-            href="https://www.linkedin.com/company/cyntaxdevelopers"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="LinkedIn"
-            className="social-link flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 bg-white/80 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800 transition"
-          >
-            <Linkedin className="w-4 h-4" />
-          </a>
-
-          {/* GitHub */}
-          <a
-            href="https://github.com/Cyntax-Inc"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="GitHub"
-            className="social-link flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 bg-white/80 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800 transition"
-          >
-            <Github className="w-4 h-4" />
-          </a>
-
-         {/*<ThemeToggle />*/}
-        </div>
-      </li>
-    </ul>
-  );
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-[rgb(var(--bg))]/80 backdrop-blur">
-      <div className="container-pad flex items-center justify-between py-3">
-
-        {/* Logo */}
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-xl font-bold tracking-tight"
-        >
-          {mounted && (
-            <Image
-              src={logo}
-              alt="Cyntax Cloud"
-              width={180}
-              height={40}
-              className="h-9 w-auto"
-              priority
-            />
-          )}
+    <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-[#090c14]/95 backdrop-blur-xl supports-[backdrop-filter]:bg-[#090c14]/85">
+      <div className="mx-auto flex h-[78px] max-w-[1320px] items-center justify-between gap-5 px-5 sm:px-8 lg:px-10">
+        <Link href="/" className="relative z-10 shrink-0" aria-label="Cyntax Cloud home" onClick={() => setMenuOpen(false)}>
+          <Image
+            src="/logo/logo_transparent_dark_mode.png"
+            width={240}
+            height={68}
+            alt="Cyntax Cloud"
+            className="h-10 w-auto object-contain sm:h-[44px]"
+            priority
+          />
         </Link>
 
-        {/* Mobile menu button */}
-        <button
-          className="lg:hidden rounded-xl border border-gray-300 py-2 px-3 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800 transition"
-          onClick={() => setOpen(!open)}
-          aria-label="Toggle menu"
-        >
-          ☰
-        </button>
+        <nav className="hidden items-center gap-6 xl:gap-8 xl:flex" aria-label="Main navigation">
+          {navigation.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className="text-[13px] font-medium text-slate-300 transition-colors hover:text-white"
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
 
-        {/* Desktop nav */}
-        <nav className="hidden lg:block">{nav}</nav>
+        <div className="hidden shrink-0 items-center gap-3 xl:flex">
+          <Link
+            href="/login"
+            className="rounded-lg px-3 py-2.5 text-[13px] font-medium text-slate-300 transition-colors hover:text-white"
+          >
+            Client login
+          </Link>
+          <a
+            href="#contact"
+            className="inline-flex items-center gap-2 rounded-lg border border-violet-400/40 bg-violet-500 px-4 py-2.5 text-[13px] font-semibold text-white shadow-[0_0_25px_rgba(114,70,240,0.16)] transition hover:border-violet-300 hover:bg-violet-400"
+          >
+            Let&apos;s talk <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+          </a>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setMenuOpen((isOpen) => !isOpen)}
+          aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+          aria-expanded={menuOpen}
+          aria-controls="mobile-cloud-navigation"
+          className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/15 text-slate-200 transition hover:bg-white/10 xl:hidden"
+        >
+          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
       </div>
 
-      {/* Mobile nav */}
-      {open && <div className="container-pad pb-4 lg:hidden">{nav}</div>}
+      {menuOpen && (
+        <nav
+          id="mobile-cloud-navigation"
+          aria-label="Mobile navigation"
+          className="border-t border-white/10 bg-[#0b0e17] px-5 pb-6 pt-3 sm:px-8 xl:hidden"
+        >
+          <div className="mx-auto flex max-w-[1320px] flex-col">
+            {navigation.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                onClick={() => setMenuOpen(false)}
+                className="border-b border-white/[0.07] py-3.5 text-sm font-medium text-slate-200 hover:text-white"
+              >
+                {item.label}
+              </a>
+            ))}
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <Link
+                href="/login"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg border border-white/15 px-5 py-3 text-sm font-medium text-white"
+              >
+                Client login
+              </Link>
+              <a
+                href="#contact"
+                onClick={() => setMenuOpen(false)}
+                className="inline-flex items-center gap-2 rounded-lg bg-violet-500 px-5 py-3 text-sm font-semibold text-white"
+              >
+                Let&apos;s talk <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+              </a>
+            </div>
+          </div>
+        </nav>
+      )}
     </header>
   );
 }
