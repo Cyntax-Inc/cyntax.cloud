@@ -10,13 +10,13 @@ import { Linkedin, Github } from "lucide-react";
 export default function Navbar() {
   const [open, setOpen] = useState(false);
 
-  const { resolvedTheme } = useTheme();
+  const { resolvedTheme, forcedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
   const logo =
-    resolvedTheme === "dark"
+    forcedTheme === "dark" || resolvedTheme === "dark"
       ? "/logo/logo_transparent_dark_mode.png"
       : "/logo_transparent_5.png";
 
