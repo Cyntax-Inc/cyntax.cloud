@@ -39,12 +39,23 @@ export default function LoginPage() {
 
       router.replace("/dashboard");
       router.refresh();
-    } catch (err) {
-      console.error(err);
-      setError("Unable to sign in. Please verify your credentials.");
-    } finally {
-      setLoading(false);
-    }
+      } catch (err: unknown) {
+        const code =
+          err && typeof err === "object" && "code" in err
+            ? err.code
+            : null;
+
+        if (
+          code === "auth/invalid-credential" ||
+          code === "auth/wrong-password" ||
+          code === "auth/user-not-found"
+        ) {
+          setError("Invalid email or password.");
+        } else {
+          console.error("Authentication error:", err);
+          setError("Unable to sign in. Please try again later.");
+        }
+      }
   }
 
   return (
