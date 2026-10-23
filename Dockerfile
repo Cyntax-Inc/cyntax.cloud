@@ -1,6 +1,6 @@
 
 # ------------ 1) Install dependencies ------------
-FROM node:20-alpine AS deps
+FROM node:22.23.4-alpine AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json* pnpm-lock.yaml* yarn.lock* ./
@@ -14,7 +14,7 @@ RUN \
 
 
 # ------------ 2) Build application ------------
-FROM node:20-alpine AS builder
+FROM node:22.23.4-alpine AS builder
 WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -44,7 +44,7 @@ RUN npm run build
 
 
 # ------------ 3) Runtime image ------------
-FROM node:20-alpine AS runner
+FROM node:22.23.4-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
