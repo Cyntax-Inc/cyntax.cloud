@@ -1,116 +1,78 @@
-import { Github, Linkedin, Mail } from "lucide-react";
-import SubscribeForm from "../../components/homepage/SubscribeForm";
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowUpRight, Github, Linkedin, Mail } from "lucide-react";
+import SubscribeForm from "./SubscribeForm";
 
-const footerLinks = [
-  ["Services", "#services"],
-  ["Tooling", "#tooling"],
-  ["Pricing", "#pricing"],
-  ["Reviews", "#reviews"],
-] as const;
+const links = [
+  { label: "Solutions", href: "#services" },
+  { label: "AIOps & monitoring", href: "#aiops" },
+  { label: "Our approach", href: "#approach" },
+  { label: "Technology", href: "#tooling" },
+  { label: "Hosting plans", href: "#pricing" },
+];
 
 export default function Footer() {
   return (
-    <footer className="w-full border-t border-white/10 bg-black text-white">
-      <div className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
-        <div className="grid gap-12 lg:grid-cols-[1.2fr_0.8fr_1fr]">
-          {/* Brand / statement */}
-          <div className="max-w-xl">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/10">
-                <span className="text-sm font-semibold text-violet-400">CC</span>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold tracking-tight">Cyntax Cloud</h3>
-                <p className="text-sm text-white/45">Secure cloud infrastructure</p>
-              </div>
-            </div>
-
-            <p className="mt-6 max-w-lg text-sm leading-7 text-white/60">
-              Advanced hosting, hardened security, and streamlined administration
-              engineered for performance, resilience, and operational efficiency.
-            </p>
-
-            <div className="mt-6">
-              <a
-                href="mailto:hosting@cyntax.cloud"
-                className="inline-flex items-center gap-2 text-sm font-medium text-violet-400 transition hover:text-violet-300"
-              >
-                <Mail className="h-4 w-4" />
-                hosting@cyntax.cloud
-              </a>
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <div>
-            <h4 className="text-sm font-semibold uppercase tracking-[0.2em] text-white/40">
-              Navigation
-            </h4>
-
-            <nav className="mt-6 flex flex-col gap-4">
-              {footerLinks.map(([label, href]) => (
-                <a
-                  key={label}
-                  href={href}
-                  className="text-sm text-white/65 transition hover:text-white"
-                >
-                  {label}
-                </a>
-              ))}
-            </nav>
-          </div>
-
-          {/* Subscribe */}
-          <div>
-            <h4 className="text-sm font-semibold uppercase tracking-[0.2em] text-white/40">
-              Stay Updated
-            </h4>
-
-            <p className="mt-6 text-sm leading-7 text-white/60">
-              Subscribe for product updates, hosting announcements, and platform news.
-            </p>
-
-            <div className="mt-6">
-              <SubscribeForm
-                source="footer"
-                inputId="footer-email"
-                placeholder="Enter your email"
-                buttonText="Subscribe"
-                showIcon
-                formClassName="flex flex-col gap-3 sm:flex-row"
-                inputClassName="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-violet-400/50"
-                buttonClassName="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-medium text-white transition hover:bg-violet-500 disabled:opacity-70"
-              />
-            </div>
-
-            <div className="mt-6 flex items-center gap-3">
-              <a
-                href="https://www.linkedin.com/company/cyntaxdevelopers"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="LinkedIn"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/75 transition hover:border-violet-400/40 hover:text-white"
-              >
-                <Linkedin className="h-4 w-4" />
-              </a>
-
-              <a
-                href="https://github.com/Cyntax-Inc"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="GitHub"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/75 transition hover:border-violet-400/40 hover:text-white"
-              >
-                <Github className="h-4 w-4" />
-              </a>
-            </div>
+    <footer className="border-t border-white/[0.08] bg-[#080b13] px-5 pt-16 sm:px-8 lg:px-10 lg:pt-20">
+      <div className="mx-auto grid max-w-[1240px] gap-12 pb-14 md:grid-cols-2 lg:grid-cols-[1.1fr_0.7fr_1fr] lg:gap-20 lg:pb-20">
+        <div>
+          <Image
+            src="/logo/logo_transparent_dark_mode.png"
+            width={240}
+            height={68}
+            alt="Cyntax Cloud"
+            className="h-[46px] w-auto object-contain"
+          />
+          <p className="mt-6 max-w-[330px] text-[13px] leading-7 text-slate-400">
+            Cloud architecture, infrastructure, orchestration, observability and DevOps, engineered for real-world operations.
+          </p>
+          <a href="mailto:hosting@cyntax.cloud" className="mt-6 inline-flex items-center gap-2 text-[13px] font-medium text-violet-300 transition-colors hover:text-violet-200">
+            <Mail className="h-4 w-4" aria-hidden="true" /> hosting@cyntax.cloud
+          </a>
+          <div className="mt-6 flex gap-2.5">
+            <a href="https://www.linkedin.com/company/cyntaxdevelopers" target="_blank" rel="noopener noreferrer" aria-label="Cyntax Cloud on LinkedIn" className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.12] text-slate-400 transition hover:border-white/25 hover:text-white">
+              <Linkedin className="h-4 w-4" aria-hidden="true" />
+            </a>
+            <a href="https://github.com/Cyntax-Inc" target="_blank" rel="noopener noreferrer" aria-label="Cyntax Cloud on GitHub" className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.12] text-slate-400 transition hover:border-white/25 hover:text-white">
+              <Github className="h-4 w-4" aria-hidden="true" />
+            </a>
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col gap-4 border-t border-white/10 pt-6 text-sm text-white/40 sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 Cyntax Cloud. All rights reserved.</p>
-          <p>Built for advanced security, reliability, and optimum efficiency.</p>
+        <div>
+          <h3 className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">Explore</h3>
+          <nav aria-label="Footer navigation" className="mt-6 flex flex-col items-start gap-3.5">
+            {links.map(({ label, href }) => (
+              <a key={href} href={href} className="text-[13px] text-slate-400 transition hover:text-white">{label}</a>
+            ))}
+            <Link href="/login" className="inline-flex items-center gap-1.5 text-[13px] text-slate-400 transition hover:text-white">
+              Client portal <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </Link>
+          </nav>
         </div>
+
+        <div>
+          <h3 className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">Stay informed</h3>
+          <p className="mt-6 max-w-[330px] text-[13px] leading-7 text-slate-400">
+            Occasional updates on cloud infrastructure, services and platform developments.
+          </p>
+          <div className="mt-5">
+            <SubscribeForm
+              source="footer"
+              inputId="cloud-footer-email"
+              placeholder="Work email address"
+              buttonText="Subscribe"
+              showIcon
+              formClassName="flex flex-col gap-2 sm:flex-row"
+              inputClassName="h-11 min-w-0 w-full flex-1 rounded-lg border border-white/[0.12] bg-white/[0.04] px-3.5 text-[13px] text-white placeholder:text-slate-500 outline-none transition focus:border-violet-400/60"
+              buttonClassName="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-violet-500 px-4 text-[13px] font-semibold text-white transition hover:bg-violet-400 disabled:opacity-60"
+            />
+          </div>
+        </div>
+      </div>
+      <div className="mx-auto flex max-w-[1240px] flex-col gap-2 border-t border-white/[0.08] py-6 text-[11px] text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+        <p>© {new Date().getFullYear()} Cyntax Cloud. All rights reserved.</p>
+        <p>Cloud services by Cyntax Inc.</p>
       </div>
     </footer>
   );
