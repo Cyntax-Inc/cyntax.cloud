@@ -196,3 +196,17 @@ body {
   background-color: var(--portal-canvas);
   color: var(--portal-subtle);
 }
+
+/* Public Cyntax Cloud homepage only. Authenticated portal theme styles are untouched. */
+.cloud-home {
+  color-scheme: dark;
+}
+
+.cloud-home section[id] {
+  scroll-margin-top: 6.5rem;
+}
+
+.cloud-home :is(a, button, input):focus-visible {
+  outline: 2px solid #b49aff;
+  outline-offset: 3px;
+}
