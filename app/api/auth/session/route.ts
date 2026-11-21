@@ -1,14 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "../../../../lib/firebaseAdmin";
+import { verifyTurnstileToken } from "../../../../lib/turnstile";
 
 const EXPIRES_IN = 60 * 60 * 24 * 5 * 1000;
 
 export async function POST(req: NextRequest) {
-  try {
-    const { idToken } = await req.json();
+  const secretKey = process.env.TURNSTILE_SECRET_KEY;
+  if (!secretKey) {
+    console.error("Missing TURNSTILE_SECRET_KEY");
+    return NextResponse.json(
+      { error: "Sign-in verification is unavailable" },
+      { status: 503 },
+    );
+  }
 
-    if (!idToken) {
+  try {
+    const { idToken, turnstileToken } = await req.json();
+
+    if (typeof idToken !== "string" || !idToken) {
       return NextResponse.json({ error: "Missing idToken" }, { status: 400 });
+    }
+
+    if (typeof turnstileToken !== "string" || !turnstileToken || turnstileToken.length > 2048) {
+      return NextResponse.json(
+        { error: "Security verification required" },
+        { status: 403 },
+      );
+    }
+
+    // Verify on the server before issuing an authenticated session cookie.
+    if (!(await verifyTurnstileToken(turnstileToken, secretKey))) {
+      return NextResponse.json(
+        { error: "Security verification failed. Please try again." },
+        { status: 403 },
+      );
     }
 
     // Require a recent sign-in before minting a long-lived session.
@@ -22,7 +47,7 @@ export async function POST(req: NextRequest) {
     });
 
     const res = NextResponse.json({ ok: true });
-
+    
     res.cookies.set("session", sessionCookie, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -36,14 +61,13 @@ export async function POST(req: NextRequest) {
     console.error("Failed to create session cookie:", error);
     return NextResponse.json(
       { error: "Unable to create session" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 }
 
 export async function DELETE() {
   const res = NextResponse.json({ ok: true });
-
   res.cookies.set("session", "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
